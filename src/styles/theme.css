@@ -1,0 +1,54 @@
+/* PURPOSE: Central design tokens (taken from the POC index.html) plus Tailwind layers.
+   WHY: Every component reads colours from these variables, so the theme lives in one file.
+   DEPENDS ON: tailwind.config.ts maps utilities such as bg-primary to these variables. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #363b6c;
+  --color-secondary: #a8a3e3;
+  --color-background: #f5f6fa;
+  --color-card: #ffffff;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-border: #e5e7eb;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+  }
+  body {
+    @apply bg-background font-sans text-text antialiased;
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* The fixed sidebar scrolls on its own when the menu is taller than the window (short screens, browser zoom).
+     A slim, light-on-dark bar instead of the default grey one; it only shows while there is something to scroll. */
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+    overscroll-behavior: contain;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgb(255 255 255 / 0.25);
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
