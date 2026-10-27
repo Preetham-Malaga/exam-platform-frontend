@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { safeReturnPath } from '@/features/auth/home';
+import { homePathFor, safeReturnPath } from '@/features/auth/home';
 import { emit, fakeSession, fakeSupabase, resetFakeSupabase } from '../helpers/fakeSupabase';
 import { meFor, mockApi, renderRoute, type Handler } from '../helpers/app';
 
@@ -527,19 +527,40 @@ describe('ResetPasswordPage', () => {
   });
 });
 
-describe('LandingPage', () => {
-  it('offers sign in and register, and shows backend status, when signed out', async () => {
+describe('Root path', () => {
+  it('opens the sign-in screen when signed out', async () => {
     renderRoute('/');
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
-    expect(screen.getByRole('link', { name: 'Create an organization' })).toHaveAttribute(
-      'href',
-      '/register',
-    );
-    expect(await screen.findByText('0.1.0')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
   });
-  it('sends a signed-in user straight to the app', async () => {
-    resetFakeSupabase(fakeSession());
-    renderRoute('/');
-    expect(await screen.findByRole('heading', { name: /^Welcome, / })).toBeInTheDocument();
+
+  it('explains instead of showing the login form again when the account cannot be loaded', async () => {
+    api['GET /api/v1/me'] = () => ({
+      status: 503,
+      error: { code: 'SERVICE_UNAVAILABLE', message: 'Service unavailable' },
+    });
+    renderRoute('/login');
+    await screen.findByRole('heading', { name: 'Welcome Back' });
+    await signInAs();
+    expect(await screen.findByText('We could not load your account')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Welcome Back' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+  });
+});
+
+describe('homePathFor', () => {
+  const me = (roles: string[], permissions: string[] = ['report.read']) =>
+    meFor({ roles, permissions });
+  it('sends each role to its dashboard', () => {
+    expect(homePathFor(me(['ORGANIZATION_OWNER']))).toBe('/org/dashboard');
+    expect(homePathFor(me(['ORGANIZATION_ADMIN']))).toBe('/org/dashboard');
+    expect(homePathFor(me(['TEACHER']))).toBe('/teacher/dashboard');
+    expect(homePathFor(me(['STUDENT'], []))).toBe('/student/dashboard');
+  });
+  it('falls back to /app when the dashboard would be refused or there is no organization', () => {
+    expect(homePathFor(me(['TEACHER'], []))).toBe('/app');
+    expect(homePathFor(me([]))).toBe('/app');
+    expect(homePathFor({ ...me(['ORGANIZATION_OWNER']), organization: null })).toBe('/app');
+    expect(homePathFor(null)).toBe('/app');
   });
 });

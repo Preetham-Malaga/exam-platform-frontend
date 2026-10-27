@@ -4,10 +4,17 @@
 
 import type { MeResponse } from '@/types/auth';
 
-/** Landing page after sign-in. Phase 5: everyone lands on /app; later phases send roles to their dashboards. */
+/** Landing page after sign-in: the role's dashboard, or /app when there is none (no role, platform admin). */
 export function homePathFor(
-  _me: Pick<MeResponse, 'isPlatformAdmin' | 'roles' | 'organization'> | null,
+  me: Pick<MeResponse, 'isPlatformAdmin' | 'roles' | 'organization' | 'permissions'> | null,
 ): string {
+  if (!me?.organization) return '/app';
+  const roles = me.roles;
+  const reports = me.permissions.includes('report.read'); // both dashboards need it
+  if (roles.includes('ORGANIZATION_OWNER') || roles.includes('ORGANIZATION_ADMIN'))
+    return reports ? '/org/dashboard' : '/app';
+  if (roles.includes('TEACHER')) return reports ? '/teacher/dashboard' : '/app';
+  if (roles.includes('STUDENT')) return '/student/dashboard';
   return '/app';
 }
 

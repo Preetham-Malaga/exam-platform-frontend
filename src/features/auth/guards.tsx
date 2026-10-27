@@ -12,6 +12,25 @@ import { usePermissions } from '@/contexts/PermissionContext';
 import type { PermissionCode } from '@/utils/permissions';
 import { homePathFor, safeReturnPath } from './home';
 
+/** Signed in to Supabase, but the backend could not load the account (e.g. the API is down). */
+function AccountLoadError() {
+  const auth = useAuth();
+  return (
+    <div className="mx-auto max-w-md p-6">
+      <ErrorState
+        title="We could not load your account"
+        message={auth.error ?? undefined}
+        onRetry={auth.refresh}
+      />
+      <div className="mt-2 text-center">
+        <Button variant="ghost" onClick={() => void auth.signOut()}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function RequireAuth() {
   const auth = useAuth();
   const location = useLocation();
@@ -20,22 +39,7 @@ export function RequireAuth() {
     return (
       <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
     );
-  if (auth.status === 'error') {
-    return (
-      <div className="mx-auto max-w-md p-6">
-        <ErrorState
-          title="We could not load your account"
-          message={auth.error ?? undefined}
-          onRetry={auth.refresh}
-        />
-        <div className="mt-2 text-center">
-          <Button variant="ghost" onClick={() => void auth.signOut()}>
-            Sign out
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (auth.status === 'error') return <AccountLoadError />;
   return <Outlet />;
 }
 
@@ -47,6 +51,8 @@ export function GuestOnly() {
     const from = safeReturnPath((location.state as { from?: unknown } | null)?.from);
     return <Navigate to={from ?? homePathFor(auth.me)} replace />;
   }
+  // Without this the login form would just reappear after a successful sign-in, with no explanation.
+  if (auth.status === 'error') return <AccountLoadError />;
   return <Outlet />;
 }
 

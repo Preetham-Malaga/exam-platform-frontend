@@ -70,7 +70,8 @@ const studentRoutes: RouteObject[] = [
 ];
 
 export const routes: RouteObject[] = [
-  { path: '/', ...page(() => import('@/pages/public/LandingPage')) },
+  // No landing page: visitors go to sign in, and GuestOnly sends signed-in users on to their dashboard.
+  { path: '/', element: <Navigate to="/login" replace /> },
   ...devRoutes,
   {
     element: <GuestOnly />,
