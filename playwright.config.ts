@@ -25,7 +25,8 @@ export default defineConfig({
   use: {
     baseURL,
     testIdAttribute: 'data-testid',
-    reducedMotion: 'reduce', // the app turns animations off for reduced motion (src/styles/theme.css)
+    // the app turns animations off for reduced motion (src/styles/theme.css)
+    contextOptions: { reducedMotion: 'reduce' },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

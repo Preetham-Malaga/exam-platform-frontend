@@ -424,7 +424,7 @@ export default function ExamDetailPage() {
       <PageHeader
         title={e.name}
         description={`${e.examCode} · ${e.questionCount} questions · ${e.totalMarks} marks · ${e.durationMinutes} min · pass ${e.passingPercentage}%`}
-        breadcrumb={[{ label: 'Exam Management' }, { label: 'Exams' }, { label: e.name }]}
+        breadcrumb={[{ label: 'Exams' }, { label: 'Exams' }, { label: e.name }]}
         actions={
           <>
             <StatusBadge status={e.status} />

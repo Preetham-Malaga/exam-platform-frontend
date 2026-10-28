@@ -21,24 +21,32 @@ export const AppShell = {
   accountLoadErrorSignOutBtn: tid('account-load-error-signout-btn'),
 } as const;
 
-/** Sidebar links: the id comes from the route with the area prefix dropped (/org/exams/published → nav-exams-published-link). */
+/** Organization menu groups (collapsible): nav-<group>-group-btn has aria-expanded / data-expanded. */
+export const NavGroups = {
+  syllabus: tid('nav-syllabus-group-btn'),
+  exams: tid('nav-exams-group-btn'),
+  people: tid('nav-people-group-btn'),
+  insights: tid('nav-insights-group-btn'),
+  settings: tid('nav-settings-group-btn'),
+} as const;
+
+/** Sidebar links: nav-<group>-<page>-link (route without the area; a leading group name is not repeated). */
 export const NavLinks = {
   dashboard: tid('nav-dashboard-link'),
-  academic: tid('nav-academic-link'),
-  courses: tid('nav-courses-link'),
-  subjects: tid('nav-subjects-link'),
-  topics: tid('nav-topics-link'),
-  questions: tid('nav-questions-link'),
-  exams: tid('nav-exams-link'),
+  courses: tid('nav-syllabus-courses-link'),
+  subjects: tid('nav-syllabus-subjects-link'),
+  topics: tid('nav-syllabus-topics-link'),
+  questions: tid('nav-syllabus-questions-link'),
+  exams: tid('nav-exams-exams-link'),
   publishedExams: tid('nav-exams-published-link'),
-  assignments: tid('nav-assignments-link'),
-  students: tid('nav-students-link'),
-  teachers: tid('nav-teachers-link'),
-  users: tid('nav-users-link'),
-  results: tid('nav-results-link'),
-  leaderboard: tid('nav-leaderboard-link'),
-  reports: tid('nav-reports-link'),
-  notifications: tid('nav-notifications-link'),
-  profile: tid('nav-profile-link'),
+  assignments: tid('nav-exams-assignments-link'),
+  students: tid('nav-people-students-link'),
+  teachers: tid('nav-people-teachers-link'),
+  users: tid('nav-people-users-link'),
+  results: tid('nav-insights-results-link'),
+  leaderboard: tid('nav-insights-leaderboard-link'),
+  reports: tid('nav-insights-reports-link'),
+  notifications: tid('nav-settings-notifications-link'),
+  profile: tid('nav-settings-profile-link'),
   permissions: tid('nav-settings-permissions-link'),
 } as const;

@@ -232,7 +232,7 @@ export default function SubjectsPage() {
             ? 'Subjects taught in your organization. Questions and exams are created per subject.'
             : 'The subjects assigned to you.'
         }
-        breadcrumb={[{ label: 'Content Management' }, { label: 'Subjects' }]}
+        breadcrumb={[{ label: 'Syllabus' }, { label: 'Subjects' }]}
         actions={
           <Can permission="subject.create">
             <Button

@@ -136,7 +136,7 @@ export default function QuestionBankPage() {
       <PageHeader
         title="Question Bank"
         description="Objective questions with a protected answer key. Only published questions can be used in exams."
-        breadcrumb={[{ label: 'Content Management' }, { label: 'Question Bank' }]}
+        breadcrumb={[{ label: 'Syllabus' }, { label: 'Question Bank' }]}
         actions={
           <Can permission="question.create">
             <Button

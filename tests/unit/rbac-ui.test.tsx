@@ -84,7 +84,11 @@ afterEach(() => vi.unstubAllGlobals());
 
 const openNav = async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Toggle navigation' }));
-  return within(await screen.findByTestId('nav-mobile-menu'));
+  const menu = await screen.findByTestId('nav-mobile-menu');
+  // Groups start closed: open them all so every link the role may use is listed.
+  for (const b of within(menu).queryAllByRole('button', { expanded: false }))
+    await userEvent.click(b);
+  return within(menu);
 };
 const rowFor = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 

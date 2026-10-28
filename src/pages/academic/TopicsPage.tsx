@@ -166,7 +166,7 @@ export default function TopicsPage() {
       <PageHeader
         title="Topics"
         description="Break each subject into topics. Questions can be tagged with a topic."
-        breadcrumb={[{ label: 'Content Management' }, { label: 'Topics' }]}
+        breadcrumb={[{ label: 'Syllabus' }, { label: 'Topics' }]}
         actions={
           <Can permission="topic.create">
             <Button

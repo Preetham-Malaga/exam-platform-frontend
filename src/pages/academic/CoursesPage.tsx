@@ -206,7 +206,7 @@ export default function CoursesPage() {
       <PageHeader
         title="Courses"
         description="Programs and courses offered by your organization."
-        breadcrumb={[{ label: 'Content Management' }, { label: 'Courses' }]}
+        breadcrumb={[{ label: 'Syllabus' }, { label: 'Courses' }]}
         actions={
           <Can permission="course.create">
             <Button

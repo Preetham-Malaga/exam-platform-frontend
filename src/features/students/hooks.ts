@@ -22,10 +22,11 @@ export function useStudentMutation<V, R>(fn: (v: V) => Promise<R>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: studentsKey });
-      await qc.invalidateQueries({ queryKey: usersKey });
-      await qc.invalidateQueries({ queryKey: academicKey });
+    // Refresh lists in the background: the form closes as soon as the save succeeds instead of waiting for the reload.
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: studentsKey });
+      void qc.invalidateQueries({ queryKey: usersKey });
+      void qc.invalidateQueries({ queryKey: academicKey });
     },
   });
 }

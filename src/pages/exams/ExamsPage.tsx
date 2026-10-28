@@ -127,10 +127,7 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
             ? 'Exams students can take now (within their open and close times).'
             : 'Create exams, add published questions, choose who takes them and publish.'
         }
-        breadcrumb={[
-          { label: 'Exam Management' },
-          { label: publishedOnly ? 'Published Exams' : 'Exams' },
-        ]}
+        breadcrumb={[{ label: 'Exams' }, { label: publishedOnly ? 'Published Exams' : 'Exams' }]}
         actions={
           <Can permission="exam.create">
             <Button

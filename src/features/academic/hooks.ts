@@ -44,6 +44,9 @@ export function useAcademicMutation<V, R>(fn: (v: V) => Promise<R>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => qc.invalidateQueries({ queryKey: academicKey }),
+    // Refresh lists in the background: the form closes as soon as the save succeeds instead of waiting for the reload.
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: academicKey });
+    },
   });
 }

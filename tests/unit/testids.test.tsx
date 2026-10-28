@@ -24,17 +24,20 @@ describe('testid helpers', () => {
     expect(testIdBase(undefined)).toBeUndefined();
     expect(slug('Roles & Permissions')).toBe('roles-permissions');
     expect(navTestId('/org/dashboard')).toBe('nav-dashboard-link');
-    expect(navTestId('/org/exams/published')).toBe('nav-exams-published-link');
-    expect(navTestId('/org/settings/permissions')).toBe('nav-settings-permissions-link');
+    expect(navTestId('/org/students', 'people')).toBe('nav-people-students-link');
+    expect(navTestId('/org/exams/published', 'exams')).toBe('nav-exams-published-link');
+    expect(navTestId('/org/settings/permissions', 'settings')).toBe(
+      'nav-settings-permissions-link',
+    );
   });
   it('give every sidebar link a unique id', () => {
-    const ids = orgNavigation.flatMap((s) => s.items.map((i) => navTestId(i.to)));
+    const ids = orgNavigation.flatMap((s) => s.items.map((i) => navTestId(i.to, s.id)));
     expect(new Set(ids).size).toBe(ids.length);
   });
   it('keep the QA locator constants in step with the real sidebar (tests/locators/shell.ts)', () => {
     const areas = [orgNavigation, teacherNavigation, studentNavigation];
     const real = new Set(
-      areas.flatMap((a) => a.flatMap((s) => s.items.map((i) => tid(navTestId(i.to))))),
+      areas.flatMap((a) => a.flatMap((s) => s.items.map((i) => tid(navTestId(i.to, s.id))))),
     );
     for (const [name, selector] of Object.entries(NavLinks))
       expect(real.has(selector), `NavLinks.${name} = ${selector}`).toBe(true);
@@ -225,14 +228,21 @@ describe('tabs, menus, dialogs, states, page root, nav', () => {
     rerender(<PageRoot testId="page-exams">x</PageRoot>);
     expect(screen.getByTestId('page-exams')).toHaveAttribute('data-ready', 'true');
   });
-  it('sidebar links are real links with route-derived ids', () => {
+  it("menu groups collapse; the current page's group is open; links are real links", () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/org/students']}>
         <SidebarNav sections={orgNavigation} />
       </MemoryRouter>,
     );
+    expect(screen.getByTestId('nav-people-group-btn')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('nav-people-students-link')).toHaveAttribute('aria-current', 'page');
+    const exams = screen.getByTestId('nav-exams-group-btn');
+    expect(exams).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('nav-exams-published-link')).not.toBeInTheDocument();
+    fireEvent.click(exams);
     const link = screen.getByTestId('nav-exams-published-link');
     expect(link.tagName).toBe('A');
     expect(link).toHaveAttribute('href', '/org/exams/published');
+    expect(screen.queryByText('Academic Structure')).not.toBeInTheDocument();
   });
 });

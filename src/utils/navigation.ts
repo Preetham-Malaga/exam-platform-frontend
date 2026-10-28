@@ -14,6 +14,8 @@ export interface NavItem {
   end?: boolean;
 }
 export interface NavSection {
+  /** Group id for locators (nav-<id>-group-btn, nav-<id>-<page>-link). Sections with a title collapse. */
+  id?: string;
   title?: string;
   items: NavItem[];
 }
@@ -30,14 +32,9 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
-    title: 'Content Management',
+    id: 'syllabus',
+    title: 'Syllabus',
     items: [
-      {
-        label: 'Academic Structure',
-        to: '/org/academic',
-        icon: 'layers',
-        anyPermission: ['academic.manage'],
-      },
       { label: 'Courses', to: '/org/courses', icon: 'book', anyPermission: ['course.read'] },
       { label: 'Subjects', to: '/org/subjects', icon: 'list', anyPermission: ['subject.read'] },
       { label: 'Topics', to: '/org/topics', icon: 'list', anyPermission: ['topic.read'] },
@@ -50,7 +47,8 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
-    title: 'Exam Management',
+    id: 'exams',
+    title: 'Exams',
     items: [
       { label: 'Exams', to: '/org/exams', icon: 'file', anyPermission: ['exam.read'], end: true },
       {
@@ -68,6 +66,7 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
+    id: 'people',
     title: 'People',
     items: [
       { label: 'Students', to: '/org/students', icon: 'users', anyPermission: ['student.read'] },
@@ -76,6 +75,7 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
+    id: 'insights',
     title: 'Insights',
     items: [
       { label: 'Results', to: '/org/results', icon: 'chart', anyPermission: ['result.read'] },
@@ -89,7 +89,8 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
-    title: 'System',
+    id: 'settings',
+    title: 'Settings',
     items: [
       {
         label: 'Notifications',

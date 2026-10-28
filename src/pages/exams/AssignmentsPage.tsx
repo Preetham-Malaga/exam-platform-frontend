@@ -33,7 +33,7 @@ export default function AssignmentsPage() {
       <PageHeader
         title="Assignments"
         description="An exam is visible only to the groups it is assigned to."
-        breadcrumb={[{ label: 'Exam Management' }, { label: 'Assignments' }]}
+        breadcrumb={[{ label: 'Exams' }, { label: 'Assignments' }]}
       />
       <Card padded={false}>
         <FilterBar>

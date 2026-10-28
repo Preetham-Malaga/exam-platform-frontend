@@ -649,7 +649,7 @@ export default function AcademicStructurePage() {
       <PageHeader
         title="Academic Structure"
         description="How your institution is organized. Courses, subjects and students are placed on these units."
-        breadcrumb={[{ label: 'Content Management' }, { label: 'Academic Structure' }]}
+        breadcrumb={[{ label: 'Syllabus' }, { label: 'Academic Structure' }]}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <LevelsCard />

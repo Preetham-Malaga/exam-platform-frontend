@@ -17,9 +17,12 @@ export function slug(text: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** Sidebar link id from its route: "/org/exams/published" → "nav-exams-published-link" (area prefix dropped). */
-export function navTestId(to: string): string {
+/** Sidebar link id from its route, area prefix dropped, group first when it has one:
+ *  "/org/students" in group "people" → "nav-people-students-link"; "/org/dashboard" → "nav-dashboard-link".
+ *  A route starting with the group's own name drops it: "/org/exams/published" in "exams" → "nav-exams-published-link". */
+export function navTestId(to: string, group?: string): string {
   const parts = to.split('/').filter(Boolean);
-  const rest = parts.length > 1 ? parts.slice(1) : parts;
-  return `nav-${slug(rest.join('-'))}-link`;
+  let rest = parts.length > 1 ? parts.slice(1) : parts;
+  if (group && rest.length > 1 && rest[0] === group) rest = rest.slice(1);
+  return `nav-${group ? `${group}-` : ''}${slug(rest.join('-'))}-link`;
 }
