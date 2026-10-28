@@ -6,6 +6,7 @@ import { NavLink } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icon';
 import { APP_NAME } from '@/lib/constants';
 import { cn } from '@/utils/cn';
+import { navTestId } from '@/utils/testid';
 import type { NavSection } from '@/utils/navigation';
 
 export function SidebarNav({
@@ -19,7 +20,7 @@ export function SidebarNav({
 }) {
   const dark = variant === 'dark';
   return (
-    <nav aria-label="Main navigation" className="flex flex-col gap-4">
+    <nav aria-label="Main navigation" className="flex flex-col gap-4" data-testid="nav">
       {sections.map((s, i) => (
         <div key={s.title ?? i}>
           {s.title && (
@@ -38,6 +39,7 @@ export function SidebarNav({
                 <NavLink
                   to={it.to}
                   end={it.end ?? false}
+                  data-testid={navTestId(it.to)}
                   {...(onNavigate ? { onClick: onNavigate } : {})}
                   className={({ isActive }) =>
                     cn(

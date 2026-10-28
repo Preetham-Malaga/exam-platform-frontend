@@ -19,11 +19,16 @@ function AccountLoadError() {
     <div className="mx-auto max-w-md p-6">
       <ErrorState
         title="We could not load your account"
+        testId="account-load-error"
         message={auth.error ?? undefined}
         onRetry={auth.refresh}
       />
       <div className="mt-2 text-center">
-        <Button variant="ghost" onClick={() => void auth.signOut()}>
+        <Button
+          variant="ghost"
+          onClick={() => void auth.signOut()}
+          data-testid="account-load-error-signout-btn"
+        >
           Sign out
         </Button>
       </div>

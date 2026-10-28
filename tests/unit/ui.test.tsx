@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BarChart, DonutChart } from '@/components/charts/Charts';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { ToastProvider, useToast } from '@/components/feedback/Toast';
@@ -150,7 +150,10 @@ describe('Toast', () => {
     const { toast } = useToast();
     return <button onClick={() => toast({ title: 'Saved', variant: 'success' })}>go</button>;
   }
-  it('announces in a live region and auto-dismisses', async () => {
+  afterEach(() => {
+    vi.useRealTimers(); // also after a failure, so later tests do not run on fake timers
+  });
+  it('announces in a live region and stays at least 4 s even when asked for less', async () => {
     vi.useFakeTimers();
     render(
       <ToastProvider durationMs={1000}>
@@ -165,11 +168,25 @@ describe('Toast', () => {
       'aria-live',
       'polite',
     );
+    expect(screen.getByTestId('toast-success')).toHaveAttribute('data-state', 'success');
     act(() => {
-      vi.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(3900);
+    });
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(200);
     });
     expect(screen.queryByText('Saved')).not.toBeInTheDocument();
-    vi.useRealTimers();
+  });
+  it('closes from its close button', () => {
+    render(
+      <ToastProvider>
+        <Trigger />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('go'));
+    fireEvent.click(screen.getByTestId('toast-close-btn'));
+    expect(screen.queryByTestId('toast-success')).not.toBeInTheDocument();
   });
   it('useToast outside the provider fails loudly', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);

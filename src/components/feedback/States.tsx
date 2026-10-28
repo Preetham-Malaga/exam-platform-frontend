@@ -10,15 +10,24 @@ import { cn } from '@/utils/cn';
 const wrap = (compact?: boolean) =>
   cn('flex flex-col items-center justify-center text-center', compact ? 'py-8' : 'py-16');
 
+// testId: pages pass their own (exams-loader, exams-empty, exams-error); the defaults keep unconverted screens addressable.
 export function LoadingState({
   label = 'Loading…',
   compact,
+  testId = 'state-loader',
 }: {
   label?: string;
   compact?: boolean;
+  testId?: string;
 }) {
   return (
-    <div role="status" aria-live="polite" className={wrap(compact)}>
+    <div
+      role="status"
+      aria-live="polite"
+      className={wrap(compact)}
+      data-testid={testId}
+      data-loading="true"
+    >
       <span
         className="h-8 w-8 animate-spin rounded-full border-[3px] border-secondary border-t-primary"
         aria-hidden="true"
@@ -34,15 +43,17 @@ export function EmptyState({
   icon = 'inbox',
   action,
   compact,
+  testId = 'state-empty',
 }: {
   title: string;
   description?: string;
   icon?: IconName;
   action?: ReactNode;
   compact?: boolean;
+  testId?: string;
 }) {
   return (
-    <div className={wrap(compact)}>
+    <div className={wrap(compact)} data-testid={testId}>
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background text-muted">
         <Icon name={icon} size={22} />
       </span>
@@ -58,21 +69,29 @@ export function ErrorState({
   message,
   onRetry,
   compact,
+  testId = 'state-error',
 }: {
   title?: string;
   message?: string;
   onRetry?: () => void;
   compact?: boolean;
+  testId?: string;
 }) {
   return (
-    <div role="alert" className={wrap(compact)}>
+    <div role="alert" className={wrap(compact)} data-testid={testId}>
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-error">
         <Icon name="alert" size={22} />
       </span>
       <h3 className="mt-3 text-[15px] font-semibold text-text">{title}</h3>
       {message && <p className="mt-1 max-w-sm text-sm text-muted">{message}</p>}
       {onRetry && (
-        <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={onRetry}
+          data-testid={`${testId}-retry-btn`}
+        >
           Try again
         </Button>
       )}

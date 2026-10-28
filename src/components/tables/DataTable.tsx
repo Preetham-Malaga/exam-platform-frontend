@@ -33,6 +33,10 @@ export interface DataTableProps<T> {
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+  /** Locator prefix (e.g. "exam"): exam-table, exam-row (+ data-entity-id), exam-row-<column>-cell, exam-loader/-empty/-error. */
+  testId?: string;
+  /** Business code shown on the row (exam code, roll number); exposed as data-entity-code. */
+  rowCode?: (row: T) => string | null | undefined;
 }
 
 export function DataTable<T>({
@@ -40,6 +44,8 @@ export function DataTable<T>({
   columns,
   rows,
   rowKey,
+  testId = 'data',
+  rowCode,
   sort,
   onSortChange,
   loading,
@@ -49,11 +55,15 @@ export function DataTable<T>({
   emptyDescription,
   emptyAction,
 }: DataTableProps<T>) {
-  if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} {...(onRetry ? { onRetry } : {})} />;
+  if (loading) return <LoadingState testId={`${testId}-loader`} />;
+  if (error)
+    return (
+      <ErrorState testId={`${testId}-error`} message={error} {...(onRetry ? { onRetry } : {})} />
+    );
   if (!rows.length)
     return (
       <EmptyState
+        testId={`${testId}-empty`}
         title={emptyTitle}
         {...(emptyDescription ? { description: emptyDescription } : {})}
         {...(emptyAction ? { action: emptyAction } : {})}
@@ -61,7 +71,7 @@ export function DataTable<T>({
     );
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-sm" data-testid={`${testId}-table`}>
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
@@ -86,6 +96,7 @@ export function DataTable<T>({
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 uppercase hover:text-text"
+                      data-testid={`${testId}-sort-${c.key}-btn`}
                       onClick={() =>
                         onSortChange({
                           key: c.key,
@@ -111,9 +122,16 @@ export function DataTable<T>({
             <tr
               key={rowKey(row)}
               className="border-b border-border last:border-0 hover:bg-background/60"
+              data-testid={`${testId}-row`}
+              data-entity-id={rowKey(row)}
+              data-entity-code={rowCode?.(row) ?? undefined}
             >
               {columns.map((c) => (
-                <td key={c.key} className={cn('px-4 py-3 align-middle', c.className)}>
+                <td
+                  key={c.key}
+                  className={cn('px-4 py-3 align-middle', c.className)}
+                  data-testid={`${testId}-row-${c.key}-cell`}
+                >
                   {c.cell(row)}
                 </td>
               ))}
@@ -131,12 +149,14 @@ export function Pagination({
   total,
   pageSize,
   onPageChange,
+  testId = 'pagination',
 }: {
   page: number;
   totalPages: number;
   total: number;
   pageSize: number;
   onPageChange: (p: number) => void;
+  testId?: string;
 }) {
   if (total === 0) return null;
   const from = (page - 1) * pageSize + 1;
@@ -145,8 +165,11 @@ export function Pagination({
     <nav
       aria-label="Pagination"
       className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-muted"
+      data-testid={testId}
+      data-page={page}
+      data-total-pages={totalPages}
     >
-      <p aria-live="polite">
+      <p aria-live="polite" data-testid={`${testId}-summary`}>
         Showing {from}–{to} of {total}
       </p>
       <div className="flex items-center gap-2">
@@ -156,6 +179,7 @@ export function Pagination({
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label="Previous page"
+          data-testid={`${testId}-prev-btn`}
         >
           <Icon name="chevronLeft" size={16} />
         </Button>
@@ -168,6 +192,7 @@ export function Pagination({
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label="Next page"
+          data-testid={`${testId}-next-btn`}
         >
           <Icon name="chevronRight" size={16} />
         </Button>

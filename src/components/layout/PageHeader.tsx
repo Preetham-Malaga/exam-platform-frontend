@@ -13,14 +13,19 @@ export interface Crumb {
 
 export function Breadcrumb({ items }: { items: Crumb[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-1">
+    <nav aria-label="Breadcrumb" className="mb-1" data-testid="breadcrumb">
       <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted">
         {items.map((c, i) => {
           const last = i === items.length - 1;
           return (
             <li key={`${c.label}-${i}`} className="flex items-center gap-1">
               {c.to && !last ? (
-                <Link to={c.to} className="hover:text-primary hover:underline">
+                <Link
+                  to={c.to}
+                  className="hover:text-primary hover:underline"
+                  data-testid="breadcrumb-link"
+                  data-to={c.to}
+                >
                   {c.label}
                 </Link>
               ) : (

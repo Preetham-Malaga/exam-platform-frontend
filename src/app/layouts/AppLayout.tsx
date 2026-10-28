@@ -16,7 +16,13 @@ export default function AppLayout() {
       sections={filterNavigation(navigationFor(me), can)}
       {...(me?.organization ? { organizationName: me.organization.name } : {})}
       user={{ name, email: me?.user.email ?? '' }}
-      menuItems={[{ label: 'Sign out', onSelect: () => void signOut() }]}
+      menuItems={[
+        {
+          label: 'Sign out',
+          testId: 'topbar-account-signout-menu-item',
+          onSelect: () => void signOut(),
+        },
+      ]}
     />
   );
 }

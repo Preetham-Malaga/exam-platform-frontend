@@ -26,6 +26,7 @@ interface ToastApi {
 }
 
 const Ctx = createContext<ToastApi | null>(null);
+const MIN_TOAST_MS = 4000;
 const STYLE: Record<ToastVariant, string> = {
   success: 'border-l-success',
   error: 'border-l-error',
@@ -50,7 +51,8 @@ export function ToastProvider({
         ...l.slice(-3),
         { id, title, ...(description ? { description } : {}), variant },
       ]);
-      setTimeout(() => dismiss(id), durationMs);
+      // Never shorter than 4 s, so people (and automated tests) can read and assert it before it goes.
+      setTimeout(() => dismiss(id), Math.max(MIN_TOAST_MS, durationMs));
     },
     [dismiss, durationMs],
   );
@@ -62,24 +64,34 @@ export function ToastProvider({
         role="region"
         aria-label="Notifications"
         aria-live="polite"
+        data-testid="toast-region"
         className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
       >
         {items.map((t) => (
           <div
             key={t.id}
             role="status"
+            data-testid={`toast-${t.variant}`}
+            data-state={t.variant}
             className={cn(
               'pointer-events-auto flex items-start gap-3 rounded-lg border border-border border-l-4 bg-card p-3 shadow-lg',
               STYLE[t.variant],
             )}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-text">{t.title}</p>
-              {t.description && <p className="text-xs text-muted">{t.description}</p>}
+              <p className="text-sm font-medium text-text" data-testid="toast-title">
+                {t.title}
+              </p>
+              {t.description && (
+                <p className="text-xs text-muted" data-testid="toast-description">
+                  {t.description}
+                </p>
+              )}
             </div>
             <button
               type="button"
               aria-label="Dismiss notification"
+              data-testid="toast-close-btn"
               className="text-muted hover:text-text"
               onClick={() => dismiss(t.id)}
             >

@@ -13,12 +13,14 @@ export function SearchInput({
   placeholder = 'Search…',
   label = 'Search',
   delayMs = 300,
+  testId = 'search-input',
 }: {
   value: string;
   onSearch: (v: string) => void;
   placeholder?: string;
   label?: string;
   delayMs?: number;
+  testId?: string;
 }) {
   const id = useId();
   const [text, setText] = useState(value);
@@ -43,6 +45,8 @@ export function SearchInput({
       <input
         id={id}
         type="search"
+        name="search"
+        data-testid={testId}
         value={text}
         placeholder={placeholder}
         onChange={(e) => setText(e.target.value)}
@@ -65,7 +69,7 @@ export function FilterBar({
     <div className="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
       {children}
       {onClear && canClear && (
-        <Button variant="ghost" size="sm" onClick={onClear}>
+        <Button variant="ghost" size="sm" onClick={onClear} data-testid="filter-clear-btn">
           Clear filters
         </Button>
       )}

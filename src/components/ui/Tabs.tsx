@@ -16,11 +16,14 @@ export function Tabs({
   value,
   onChange,
   label,
+  testId = 'tabs',
 }: {
   tabs: TabItem[];
   value: string;
   onChange: (id: string) => void;
   label: string;
+  /** Locator prefix: "exams" gives exams-tab-<id> buttons and exams-tab-panel. */
+  testId?: string;
 }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const move = (e: KeyboardEvent, index: number) => {
@@ -57,6 +60,8 @@ export function Tabs({
             id={`tab-${t.id}`}
             type="button"
             aria-selected={t.id === value}
+            data-testid={`${testId}-tab-${t.id}`}
+            data-selected={t.id === value}
             aria-controls={`panel-${t.id}`}
             tabIndex={t.id === value ? 0 : -1}
             onClick={() => onChange(t.id)}
@@ -77,6 +82,8 @@ export function Tabs({
           role="tabpanel"
           id={`panel-${active.id}`}
           aria-labelledby={`tab-${active.id}`}
+          data-testid={`${testId}-tab-panel`}
+          data-tab={active.id}
           className="pt-4"
         >
           {active.content}

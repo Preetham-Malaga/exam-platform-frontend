@@ -26,7 +26,13 @@ export function Topbar({
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between gap-3 border-b border-border bg-card px-4">
-      <Button variant="ghost" size="sm" aria-label="Toggle navigation" onClick={onMenuClick}>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label="Toggle navigation"
+        data-testid="topbar-nav-toggle-btn"
+        onClick={onMenuClick}
+      >
         <Icon name="menu" size={20} />
       </Button>
       <div className="flex items-center gap-3">
@@ -34,12 +40,22 @@ export function Topbar({
         {user && (
           <div className="flex items-center gap-2">
             <div className="hidden text-right sm:block">
-              <p className="text-[13px] font-medium leading-tight text-text">{user.name}</p>
-              {user.email && <p className="text-xs leading-tight text-muted">{user.email}</p>}
+              <p
+                className="text-[13px] font-medium leading-tight text-text"
+                data-testid="topbar-user-name"
+              >
+                {user.name}
+              </p>
+              {user.email && (
+                <p className="text-xs leading-tight text-muted" data-testid="topbar-user-email">
+                  {user.email}
+                </p>
+              )}
             </div>
             {menuItems.length > 0 ? (
               <Dropdown
                 label="Account menu"
+                testId="topbar-account"
                 trigger={<Avatar name={user.name} />}
                 items={menuItems}
               />

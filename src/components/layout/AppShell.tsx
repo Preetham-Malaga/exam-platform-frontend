@@ -36,6 +36,7 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <a
         href="#main-content"
+        data-testid="skip-to-content-link"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2"
       >
         Skip to content
@@ -49,6 +50,7 @@ export function AppShell({
           onClose={() => setDrawerOpen(false)}
           title="Navigation"
           side="left"
+          testId="nav-drawer"
         >
           <SidebarNav sections={sections} variant="light" onNavigate={() => setDrawerOpen(false)} />
         </Drawer>

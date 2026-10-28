@@ -20,9 +20,12 @@ interface DialogProps {
   side?: 'center' | 'left' | 'right';
   size?: 'sm' | 'md' | 'lg';
   closeOnOverlay?: boolean;
+  /** Root locator (e.g. "course-form-dialog"); its close button is <testId>-close-btn. */
+  testId?: string;
 }
 
 function Dialog({
+  testId = 'dialog',
   open,
   onClose,
   title,
@@ -108,6 +111,7 @@ function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
+        data-testid={testId}
         className={cn(
           'relative flex max-h-full w-full flex-col bg-card shadow-xl focus:outline-none',
           side === 'center' ? cn('rounded-card', width) : 'h-full max-w-xs',
@@ -117,7 +121,13 @@ function Dialog({
           <h2 id={titleId} className="text-base font-semibold text-text">
             {title}
           </h2>
-          <Button variant="ghost" size="sm" aria-label="Close dialog" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Close dialog"
+            data-testid={`${testId}-close-btn`}
+            onClick={onClose}
+          >
             <Icon name="close" />
           </Button>
         </header>
@@ -150,6 +160,7 @@ export function ConfirmDialog({
   loading,
   onConfirm,
   onCancel,
+  testId = 'confirm',
 }: {
   open: boolean;
   title: string;
@@ -159,6 +170,8 @@ export function ConfirmDialog({
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Locator prefix: "exam-delete" gives exam-delete-dialog, exam-delete-cancel-btn, exam-delete-confirm-btn. */
+  testId?: string;
 }) {
   return (
     <Modal
@@ -166,15 +179,22 @@ export function ConfirmDialog({
       onClose={onCancel}
       title={title}
       size="sm"
+      testId={`${testId}-dialog`}
       footer={
         <>
-          <Button variant="outline" onClick={onCancel} data-autofocus>
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            data-autofocus
+            data-testid={`${testId}-cancel-btn`}
+          >
             Cancel
           </Button>
           <Button
             variant={tone === 'danger' ? 'danger' : 'primary'}
             loading={Boolean(loading)}
             onClick={onConfirm}
+            data-testid={`${testId}-confirm-btn`}
           >
             {confirmLabel}
           </Button>

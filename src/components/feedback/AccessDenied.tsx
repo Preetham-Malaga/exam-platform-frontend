@@ -7,13 +7,17 @@ import { EmptyState } from './States';
 
 export function AccessDenied() {
   return (
-    <div role="alert">
+    <div role="alert" data-testid="access-denied">
       <EmptyState
         icon="shield"
         title="You do not have access to this page"
         description="Ask an administrator of your organization if you need access."
         action={
-          <Link to="/app" className="font-medium text-primary underline">
+          <Link
+            to="/app"
+            className="font-medium text-primary underline"
+            data-testid="access-denied-home-link"
+          >
             Go to your home page
           </Link>
         }
