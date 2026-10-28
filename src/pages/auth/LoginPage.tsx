@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, PasswordInput } from '@/components/forms/Form';
 import { AuthLayout } from '@/components/layout/AuthLayout';
+import { PageRoot } from '@/components/layout/PageRoot';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,81 +112,109 @@ export default function LoginPage() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="font-semibold text-[#3b5bdb] hover:underline">
+          <Link
+            to="/register"
+            className="font-semibold text-[#3b5bdb] hover:underline"
+            data-testid="login-signup-link"
+          >
             Sign up
           </Link>
         </>
       }
     >
-      {sessionExpired && (
-        <p role="status" className="mb-4 rounded-lg bg-warning/15 px-3 py-2 text-sm text-text">
-          Your session has expired. Please sign in again.
-        </p>
-      )}
-      <form onSubmit={onSubmit} noValidate className="grid gap-5">
-        <Input
-          label="Email"
-          type="email"
-          autoComplete="username"
-          placeholder="Enter your email address"
-          required
-          leftIcon={<Icon name="mail" size={18} />}
-          error={errors.email?.message}
-          {...register('email')}
-        />
-        <PasswordInput
-          label="Password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
-          required
-          leftIcon={<Icon name="lock" size={18} />}
-          error={errors.password?.message}
-          {...register('password')}
-        />
-        <div className="flex items-center justify-between gap-3">
-          <Checkbox
-            label="Remember me"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-          />
-          <Link
-            to="/forgot-password"
-            className="text-sm font-medium text-[#3b5bdb] hover:underline"
+      <PageRoot testId="page-login">
+        {sessionExpired && (
+          <p
+            role="status"
+            className="mb-4 rounded-lg bg-warning/15 px-3 py-2 text-sm text-text"
+            data-testid="login-session-expired-hint"
           >
-            Forgot password?
-          </Link>
-        </div>
-        {formError && (
-          <p role="alert" className="text-sm text-error">
-            {formError}
+            Your session has expired. Please sign in again.
           </p>
         )}
-        {unverified && (
-          <Button type="button" variant="outline" loading={resending} onClick={() => void resend()}>
-            Resend verification email
+        <form onSubmit={onSubmit} noValidate className="grid gap-5" data-testid="login-form">
+          <Input
+            label="Email"
+            data-testid="login-email-input"
+            type="email"
+            autoComplete="username"
+            placeholder="Enter your email address"
+            required
+            leftIcon={<Icon name="mail" size={18} />}
+            error={errors.email?.message}
+            {...register('email')}
+          />
+          <PasswordInput
+            label="Password"
+            data-testid="login-password-input"
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            required
+            leftIcon={<Icon name="lock" size={18} />}
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <div className="flex items-center justify-between gap-3">
+            <Checkbox
+              label="Remember me"
+              name="remember"
+              data-testid="login-remember-checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-[#3b5bdb] hover:underline"
+              data-testid="login-forgot-password-link"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          {formError && (
+            <p role="alert" className="text-sm text-error" data-testid="login-error">
+              {formError}
+            </p>
+          )}
+          {unverified && (
+            <Button
+              type="button"
+              variant="outline"
+              loading={resending}
+              onClick={() => void resend()}
+              data-testid="login-resend-verification-btn"
+            >
+              Resend verification email
+            </Button>
+          )}
+          <Button
+            type="submit"
+            loading={isSubmitting}
+            className="h-12 text-base"
+            data-testid="login-submit-btn"
+            data-loading={isSubmitting || undefined}
+          >
+            Login
+            <Icon name="arrowRight" size={18} />
           </Button>
-        )}
-        <Button type="submit" loading={isSubmitting} className="h-12 text-base">
-          Login
-          <Icon name="arrowRight" size={18} />
-        </Button>
-      </form>
+        </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-border" />
-        or continue with
-        <span className="h-px flex-1 bg-border" />
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full text-base"
-        loading={googleBusy}
-        leftIcon={<GoogleLogo />}
-        onClick={() => void google()}
-      >
-        Continue with Google
-      </Button>
+        <div className="my-6 flex items-center gap-3 text-xs text-muted">
+          <span className="h-px flex-1 bg-border" />
+          or continue with
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full text-base"
+          loading={googleBusy}
+          leftIcon={<GoogleLogo />}
+          onClick={() => void google()}
+          data-testid="login-google-btn"
+        >
+          Continue with Google
+        </Button>
+      </PageRoot>
     </AuthLayout>
   );
 }
