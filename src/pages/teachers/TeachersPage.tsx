@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -22,7 +22,7 @@ import { errorText } from '@/features/academic/ui';
 import { Can } from '@/features/auth/Can';
 import { LoginBadge } from '@/features/people/LoginBadge';
 import { useTeacherMutation, useTeachers } from '@/features/teachers/hooks';
-import { ScopeDrawer } from '@/features/teachers/ScopeDrawer';
+import { ScopePanel } from '@/features/teachers/ScopePanel';
 import { teacherSchema, type TeacherValues } from '@/features/teachers/schemas';
 import { teacherService } from '@/services/teacherService';
 import type { Teacher, UpdateTeacherBody } from '@/types/teacher';
@@ -33,14 +33,17 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactive' },
 ];
 
-function TeacherModal({
+/** Add form (above the list) or edit form (under the teacher's row). */
+function TeacherForm({
   open,
   teacher,
   onClose,
+  className,
 }: {
   open: boolean;
   teacher: Teacher | null;
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const create = useTeacherMutation((v: TeacherValues) =>
@@ -107,27 +110,35 @@ function TeacherModal({
   });
   const e = form.formState.errors;
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title={teacher ? `Edit ${teacher.fullName}` : 'Add a teacher'}
+      testId="teacher-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="teacher-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="teacher-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="teacher-form"
+            loading={create.isPending || update.isPending}
+            data-testid="teacher-form-save-btn"
+          >
             {teacher ? 'Save' : 'Add teacher'}
           </Button>
         </>
       }
     >
-      <form id="teacher-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="teacher-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Full name"
           required
           data-autofocus
           error={e.fullName?.message}
+          data-testid="teacher-form-name-input"
           {...form.register('fullName')}
         />
         <Input
@@ -135,6 +146,7 @@ function TeacherModal({
           required
           hint="Unique in your organization."
           error={e.employeeCode?.message}
+          data-testid="teacher-form-employee-code-input"
           {...form.register('employeeCode')}
         />
         <Input
@@ -143,25 +155,33 @@ function TeacherModal({
           disabled={Boolean(teacher?.userId)}
           hint={teacher?.userId ? 'This is the sign-in address of the teacher.' : undefined}
           error={e.email?.message}
+          data-testid="teacher-form-email-input"
           {...form.register('email')}
         />
-        <Input label="Phone" error={e.phone?.message} {...form.register('phone')} />
+        <Input
+          label="Phone"
+          error={e.phone?.message}
+          data-testid="teacher-form-phone-input"
+          {...form.register('phone')}
+        />
         {teacher ? (
           <Select
             label="Status"
             hint="Inactive teachers cannot sign in to your organization."
             options={STATUS_OPTIONS}
+            data-testid="teacher-form-status-select"
             {...form.register('status')}
           />
         ) : (
           <Checkbox
             label="Send an invitation to sign in"
             description="Creates the login now. Without it you can invite the teacher later."
+            data-testid="teacher-form-invite-checkbox"
             {...form.register('invite')}
           />
         )}
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -191,15 +211,38 @@ export default function TeachersPage() {
     fn();
     setPage(1);
   };
+  // One inline form, scope panel or confirmation at a time.
+  const show = (next: {
+    creating?: boolean;
+    editing?: Teacher;
+    scoping?: Teacher;
+    removing?: Teacher;
+  }) => {
+    setCreating(Boolean(next.creating));
+    setEditing(next.editing ?? null);
+    setScoping(next.scoping ?? null);
+    setRemoving(next.removing ?? null);
+  };
+  const closeForm = () => show({});
 
   const menu = (t: Teacher): MenuItem[] => {
     const items: MenuItem[] = [];
-    if (perms.can('teacher.update')) items.push({ label: 'Edit', onSelect: () => setEditing(t) });
+    if (perms.can('teacher.update'))
+      items.push({
+        label: 'Edit',
+        testId: 'row-actions-edit-menu-item',
+        onSelect: () => show({ editing: t }),
+      });
     if (perms.can('teacher.assign_scope') && t.userId)
-      items.push({ label: 'Assign scope', onSelect: () => setScoping(t) });
+      items.push({
+        label: 'Assign scope',
+        testId: 'row-actions-scope-menu-item',
+        onSelect: () => show({ scoping: t }),
+      });
     if (perms.can('teacher.create') && !t.userId && t.email)
       items.push({
         label: 'Send invitation',
+        testId: 'row-actions-invite-menu-item',
         onSelect: () =>
           invite.mutate(t.id, {
             onSuccess: () =>
@@ -217,7 +260,12 @@ export default function TeachersPage() {
           }),
       });
     if (perms.can('teacher.delete'))
-      items.push({ label: 'Remove', danger: true, onSelect: () => setRemoving(t) });
+      items.push({
+        label: 'Remove',
+        danger: true,
+        testId: 'row-actions-remove-menu-item',
+        onSelect: () => show({ removing: t }),
+      });
     return items;
   };
 
@@ -229,12 +277,17 @@ export default function TeachersPage() {
         breadcrumb={[{ label: 'People' }, { label: 'Teachers' }]}
         actions={
           <Can permission="teacher.create">
-            <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setCreating(true)}>
+            <Button
+              leftIcon={<Icon name="plus" size={16} />}
+              onClick={() => show({ creating: true })}
+              data-testid="teachers-add-btn"
+            >
               Add teacher
             </Button>
           </Can>
         }
       />
+      <TeacherForm open={creating} teacher={null} onClose={closeForm} className="mb-4" />
       <Card padded={false}>
         <FilterBar
           canClear={Boolean(search || status)}
@@ -316,6 +369,7 @@ export default function TeachersPage() {
                 return items.length ? (
                   <Dropdown
                     label={`Actions for ${t.fullName}`}
+                    testId="row-actions"
                     trigger={<Icon name="more" />}
                     items={items}
                   />
@@ -323,6 +377,46 @@ export default function TeachersPage() {
               },
             },
           ]}
+          testId="teacher"
+          rowCode={(t) => t.employeeCode}
+          expandedRow={(t) =>
+            editing?.id === t.id ? (
+              <TeacherForm open teacher={t} onClose={closeForm} />
+            ) : scoping?.id === t.id ? (
+              <ScopePanel teacher={t} onClose={closeForm} />
+            ) : removing?.id === t.id ? (
+              <InlineConfirm
+                open
+                testId="teacher-remove"
+                title="Remove this teacher?"
+                confirmLabel="Remove teacher"
+                loading={remove.isPending}
+                onCancel={closeForm}
+                onConfirm={() =>
+                  remove.mutate(t.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Teacher removed', variant: 'success' });
+                      closeForm();
+                    },
+                    onError: (err) => {
+                      toast({
+                        title: 'Could not remove the teacher',
+                        description: errorText(err),
+                        variant: 'error',
+                      });
+                      closeForm();
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{t.fullName}</strong> loses access to your organization and their scope
+                    is cleared. Exams and questions they created stay.
+                  </>
+                }
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -334,48 +428,6 @@ export default function TeachersPage() {
           />
         )}
       </Card>
-
-      <TeacherModal
-        open={creating || Boolean(editing)}
-        teacher={editing}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-      />
-      <ScopeDrawer teacher={scoping} onClose={() => setScoping(null)} />
-      <ConfirmDialog
-        open={Boolean(removing)}
-        title="Remove this teacher?"
-        confirmLabel="Remove teacher"
-        loading={remove.isPending}
-        onCancel={() => setRemoving(null)}
-        onConfirm={() =>
-          removing &&
-          remove.mutate(removing.id, {
-            onSuccess: () => {
-              toast({ title: 'Teacher removed', variant: 'success' });
-              setRemoving(null);
-            },
-            onError: (err) => {
-              toast({
-                title: 'Could not remove the teacher',
-                description: errorText(err),
-                variant: 'error',
-              });
-              setRemoving(null);
-            },
-          })
-        }
-        message={
-          removing && (
-            <>
-              <strong>{removing.fullName}</strong> loses access to your organization and their scope
-              is cleared. Exams and questions they created stay.
-            </>
-          )
-        }
-      />
     </>
   );
 }

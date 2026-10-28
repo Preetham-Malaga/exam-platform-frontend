@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/feedback/Toast';
 import { Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Modal } from '@/components/modals/Dialog';
+import { InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -31,24 +31,39 @@ const STATUS_OPTIONS = [
   { value: 'unpublished', label: 'Unpublished' },
 ];
 
-function NewExamModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Shown above the list; after creating, the exam page opens to add questions. */
+function NewExamForm({
+  open,
+  onClose,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  className?: string;
+}) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const base = useAreaBase();
   const create = useAssessmentMutation((b: ExamBody) => examService.create(b));
   if (!open) return null;
   return (
-    <Modal
+    <InlinePanel
       open
       onClose={onClose}
-      size="lg"
       title="New exam"
+      testId="exam-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} data-testid="exam-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="new-exam-form" loading={create.isPending}>
+          <Button
+            type="submit"
+            form="new-exam-form"
+            loading={create.isPending}
+            data-testid="exam-form-save-btn"
+          >
             Create exam
           </Button>
         </>
@@ -77,7 +92,7 @@ function NewExamModal({ open, onClose }: { open: boolean; onClose: () => void })
           })
         }
       />
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -118,12 +133,17 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
         ]}
         actions={
           <Can permission="exam.create">
-            <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setCreating(true)}>
+            <Button
+              leftIcon={<Icon name="plus" size={16} />}
+              onClick={() => setCreating(true)}
+              data-testid="exams-add-btn"
+            >
               New exam
             </Button>
           </Can>
         }
       />
+      <NewExamForm open={creating} onClose={() => setCreating(false)} className="mb-4" />
       <Card padded={false}>
         <FilterBar
           canClear={Boolean(search || status)}
@@ -179,6 +199,7 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
                   className="text-left"
                   onClick={() => navigate(`${base}/exams/${e.id}`)}
                   aria-label={`Open ${e.name}`}
+                  data-testid="exam-row-open-btn"
                 >
                   <span className="block font-medium text-primary hover:underline">{e.name}</span>
                   <span className="block font-mono text-xs text-muted">{e.examCode}</span>
@@ -200,6 +221,8 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
             { key: 'attempts', header: 'Attempts', cell: (e) => e.attemptCount },
             { key: 'status', header: 'Status', cell: (e) => <StatusBadge status={e.status} /> },
           ]}
+          testId="exam"
+          rowCode={(e) => e.examCode}
         />
         {q.data && (
           <Pagination
@@ -211,7 +234,6 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
           />
         )}
       </Card>
-      <NewExamModal open={creating} onClose={() => setCreating(false)} />
     </>
   );
 }

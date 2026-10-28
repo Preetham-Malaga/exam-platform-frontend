@@ -13,15 +13,30 @@ export function Card({
   children,
   className,
   padded = true,
+  testId,
+  entityId,
+  entityCode,
+  state,
 }: {
   title?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
   padded?: boolean;
+  /** Locators (docs/locators.md): repeated cards share testId and differ by entityId / entityCode. */
+  testId?: string;
+  entityId?: string;
+  entityCode?: string;
+  state?: string;
 }) {
   return (
-    <section className={cn('rounded-card border border-border bg-card shadow-sm', className)}>
+    <section
+      className={cn('rounded-card border border-border bg-card shadow-sm', className)}
+      data-testid={testId}
+      data-entity-id={entityId}
+      data-entity-code={entityCode}
+      data-state={state}
+    >
       {(title || actions) && (
         <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
           {title && <h2 className="text-[15px] font-semibold text-text">{title}</h2>}

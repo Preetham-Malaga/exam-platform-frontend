@@ -6,7 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/Stat
 import { Input, PasswordInput, Select, Textarea } from '@/components/forms/Form';
 import { PageRoot } from '@/components/layout/PageRoot';
 import { SidebarNav } from '@/components/layout/Sidebar';
-import { ConfirmDialog } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Dropdown } from '@/components/ui/Dropdown';
@@ -178,20 +178,27 @@ describe('tabs, menus, dialogs, states, page root, nav', () => {
     fireEvent.click(screen.getByTestId('exam-row-actions-delete-exam-menu-item'));
     expect(onSelect).toHaveBeenCalled();
   });
-  it('confirm dialog ids follow its prefix', () => {
+  it('inline confirm and inline panel ids follow their prefix', () => {
     const onConfirm = vi.fn();
     render(
-      <ConfirmDialog
-        open
-        testId="exam-delete"
-        title="Delete?"
-        message="Sure?"
-        onConfirm={onConfirm}
-        onCancel={() => undefined}
-      />,
+      <>
+        <InlinePanel open onClose={() => undefined} title="New course" testId="course-form">
+          x
+        </InlinePanel>
+        <InlineConfirm
+          open
+          testId="exam-delete"
+          title="Delete?"
+          message="Sure?"
+          onConfirm={onConfirm}
+          onCancel={() => undefined}
+        />
+      </>,
     );
-    expect(screen.getByTestId('exam-delete-dialog')).toHaveAttribute('role', 'dialog');
-    expect(screen.getByTestId('exam-delete-dialog-close-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('course-form')).toBeInTheDocument();
+    expect(screen.getByTestId('course-form-close-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('exam-delete-confirm')).toHaveAttribute('data-state', 'danger');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('exam-delete-cancel-btn')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('exam-delete-confirm-btn'));
     expect(onConfirm).toHaveBeenCalled();

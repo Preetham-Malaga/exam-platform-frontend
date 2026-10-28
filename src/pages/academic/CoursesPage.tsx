@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select, Textarea } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -30,16 +30,19 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactive' },
 ];
 
-function CourseModal({
+/** Add form (above the list) or edit form (under the course's row). */
+function CourseForm({
   open,
   course,
   units,
   onClose,
+  className,
 }: {
   open: boolean;
   course: Course | null;
   units: Array<{ value: string; label: string }>;
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const create = useAcademicMutation((v: CourseValues) =>
@@ -93,28 +96,36 @@ function CourseModal({
   });
   const e = form.formState.errors;
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title={course ? `Edit ${course.name}` : 'New course'}
+      testId="course-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="course-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="course-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="course-form"
+            loading={create.isPending || update.isPending}
+            data-testid="course-form-save-btn"
+          >
             {course ? 'Save' : 'Create course'}
           </Button>
         </>
       }
     >
-      <form id="course-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="course-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Name"
           required
           data-autofocus
           placeholder="e.g. B.Tech"
           error={e.name?.message}
+          data-testid="course-form-name-input"
           {...form.register('name')}
         />
         <Input
@@ -123,23 +134,34 @@ function CourseModal({
           placeholder="e.g. BTECH"
           hint="Unique in your organization."
           error={e.code?.message}
+          data-testid="course-form-code-input"
           {...form.register('code')}
         />
         <Select
           label="Academic unit"
           placeholder="No unit"
           options={units}
+          data-testid="course-form-unit-select"
           {...form.register('academicUnitId')}
         />
+        {course && (
+          <Select
+            label="Status"
+            options={STATUS_OPTIONS}
+            data-testid="course-form-status-select"
+            {...form.register('status')}
+          />
+        )}
         <Textarea
           label="Description"
           rows={3}
+          className="sm:col-span-2"
           error={e.description?.message}
+          data-testid="course-form-description-textarea"
           {...form.register('description')}
         />
-        {course && <Select label="Status" options={STATUS_OPTIONS} {...form.register('status')} />}
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -171,6 +193,13 @@ export default function CoursesPage() {
     fn();
     setPage(1);
   };
+  // One inline form or confirmation at a time.
+  const show = (next: { creating?: boolean; editing?: Course; deleting?: Course }) => {
+    setCreating(Boolean(next.creating));
+    setEditing(next.editing ?? null);
+    setDeleting(next.deleting ?? null);
+  };
+  const closeForm = () => show({});
 
   return (
     <>
@@ -180,11 +209,22 @@ export default function CoursesPage() {
         breadcrumb={[{ label: 'Content Management' }, { label: 'Courses' }]}
         actions={
           <Can permission="course.create">
-            <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setCreating(true)}>
+            <Button
+              leftIcon={<Icon name="plus" size={16} />}
+              onClick={() => show({ creating: true })}
+              data-testid="courses-add-btn"
+            >
               New course
             </Button>
           </Can>
         }
+      />
+      <CourseForm
+        open={creating}
+        course={null}
+        units={units}
+        onClose={closeForm}
+        className="mb-4"
       />
       <Card padded={false}>
         <FilterBar
@@ -262,12 +302,50 @@ export default function CoursesPage() {
               cell: (c) => (
                 <RowActions
                   label={c.name}
-                  onEdit={perms.can('course.update') ? () => setEditing(c) : undefined}
-                  onDelete={perms.can('course.delete') ? () => setDeleting(c) : undefined}
+                  onEdit={perms.can('course.update') ? () => show({ editing: c }) : undefined}
+                  onDelete={perms.can('course.delete') ? () => show({ deleting: c }) : undefined}
                 />
               ),
             },
           ]}
+          testId="course"
+          rowCode={(c) => c.code}
+          expandedRow={(c) =>
+            editing?.id === c.id ? (
+              <CourseForm open course={c} units={units} onClose={closeForm} />
+            ) : deleting?.id === c.id ? (
+              <InlineConfirm
+                open
+                testId="course-delete"
+                title="Delete this course?"
+                confirmLabel="Delete course"
+                loading={remove.isPending}
+                onCancel={closeForm}
+                onConfirm={() =>
+                  remove.mutate(c.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Course deleted', variant: 'success' });
+                      closeForm();
+                    },
+                    onError: (err) => {
+                      toast({
+                        title: 'Could not delete the course',
+                        description: errorText(err),
+                        variant: 'error',
+                      });
+                      closeForm();
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{c.name}</strong> will be removed. Courses that still have subjects
+                    cannot be deleted.
+                  </>
+                }
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -279,48 +357,6 @@ export default function CoursesPage() {
           />
         )}
       </Card>
-
-      <CourseModal
-        open={creating || Boolean(editing)}
-        course={editing}
-        units={units}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-      />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this course?"
-        confirmLabel="Delete course"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Course deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (err) => {
-              toast({
-                title: 'Could not delete the course',
-                description: errorText(err),
-                variant: 'error',
-              });
-              setDeleting(null);
-            },
-          })
-        }
-        message={
-          deleting && (
-            <>
-              <strong>{deleting.name}</strong> will be removed. Courses that still have subjects
-              cannot be deleted.
-            </>
-          )
-        }
-      />
     </>
   );
 }

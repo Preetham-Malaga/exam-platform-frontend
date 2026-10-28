@@ -177,7 +177,7 @@ describe('Students page', () => {
     renderRoute('/org/students');
     await screen.findByText('Anita Verma');
     await userEvent.click(screen.getByRole('button', { name: 'Add student' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a student' });
+    const dialog = await screen.findByRole('region', { name: 'Add a student' });
     await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Kiran Rao');
     await userEvent.type(within(dialog).getByLabelText(/Roll number/), '21EE009');
     await userEvent.selectOptions(within(dialog).getByLabelText(/Academic unit/), 'B.Tech / EEE');
@@ -218,7 +218,7 @@ describe('Students page', () => {
     renderRoute('/org/students');
     await screen.findByText('Anita Verma');
     await userEvent.click(screen.getByRole('button', { name: 'Import CSV' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Import students' });
+    const dialog = await screen.findByRole('region', { name: 'Import students' });
     const csv =
       'roll_number,full_name,unit_code\n21EE101,One,EEE\n21EE002,Two,EEE\n21EE103,Three,\n';
     await userEvent.upload(
@@ -253,7 +253,7 @@ describe('Students page', () => {
     renderRoute('/org/students');
     await screen.findByText('Anita Verma');
     await userEvent.click(screen.getByRole('button', { name: 'Import CSV' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Import students' });
+    const dialog = await screen.findByRole('region', { name: 'Import students' });
     await userEvent.upload(
       within(dialog).getByLabelText('CSV file'),
       new File(['name\nAsha\n'], 'bad.csv', { type: 'text/csv' }),

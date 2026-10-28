@@ -1,4 +1,4 @@
-// PURPOSE: Create / edit dialog for an objective question: subject, topic, type, text, 2-6 options with the correct one,
+// PURPOSE: Create / edit form (shown in the page) for an objective question: subject, topic, type, text, 2-6 options with the correct one,
 //          marks, negative marks, difficulty and explanation; "Save as draft" or "Save and publish".
 // WHY: The same rules as the API (true/false has 2 options, the answer must be an option, options differ) are checked
 //      here first so the teacher sees them next to the field.
@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select, Textarea } from '@/components/forms/Form';
-import { Modal } from '@/components/modals/Dialog';
+import { InlinePanel } from '@/components/inline/Inline';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { usePermissions } from '@/contexts/PermissionContext';
@@ -22,10 +22,12 @@ function Editor({
   question,
   defaultSubject,
   onClose,
+  className,
 }: {
   question: Question | null;
   defaultSubject: string;
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const perms = usePermissions();
@@ -100,27 +102,41 @@ function Editor({
   }));
   const topicOptions = (topics.data?.items ?? []).map((t) => ({ value: t.id, label: t.name }));
   return (
-    <Modal
+    <InlinePanel
       open
       onClose={onClose}
-      size="lg"
       title={question ? 'Edit question' : 'New question'}
+      testId="question-editor"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} data-testid="question-editor-cancel-btn">
             Cancel
           </Button>
           {question ? (
-            <Button loading={save.isPending} onClick={() => submit(false)}>
+            <Button
+              loading={save.isPending}
+              onClick={() => submit(false)}
+              data-testid="question-editor-save-btn"
+            >
               Save
             </Button>
           ) : (
             <>
-              <Button variant="secondary" loading={save.isPending} onClick={() => submit(false)}>
+              <Button
+                variant="secondary"
+                loading={save.isPending}
+                onClick={() => submit(false)}
+                data-testid="question-editor-save-draft-btn"
+              >
                 Save as draft
               </Button>
               {perms.can('question.publish') && (
-                <Button loading={save.isPending} onClick={() => submit(true)}>
+                <Button
+                  loading={save.isPending}
+                  onClick={() => submit(true)}
+                  data-testid="question-editor-save-publish-btn"
+                >
                   Save and publish
                 </Button>
               )}
@@ -138,6 +154,7 @@ function Editor({
             value={d.subjectId}
             options={subjectOptions}
             error={errors.subjectId}
+            data-testid="question-editor-subject-select"
             onChange={(e) => setD((p) => ({ ...p, subjectId: e.target.value, topicId: '' }))}
           />
           <Select
@@ -146,6 +163,7 @@ function Editor({
             value={d.topicId}
             options={topicOptions}
             disabled={!d.subjectId}
+            data-testid="question-editor-topic-select"
             onChange={(e) => set('topicId', e.target.value)}
           />
         </div>
@@ -157,6 +175,7 @@ function Editor({
               { value: 'multiple_choice', label: 'Multiple choice' },
               { value: 'true_false', label: 'True / false' },
             ]}
+            data-testid="question-editor-type-select"
             onChange={(e) => setType(e.target.value as QuestionType)}
           />
           <Select
@@ -167,6 +186,7 @@ function Editor({
               { value: 'medium', label: 'Medium' },
               { value: 'hard', label: 'Hard' },
             ]}
+            data-testid="question-editor-difficulty-select"
             onChange={(e) => set('difficulty', e.target.value as Difficulty)}
           />
         </div>
@@ -176,6 +196,7 @@ function Editor({
           rows={3}
           value={d.questionText}
           error={errors.questionText}
+          data-testid="question-editor-text-textarea"
           onChange={(e) => set('questionText', e.target.value)}
         />
         <fieldset className="grid gap-2">
@@ -183,10 +204,17 @@ function Editor({
             Options <span className="font-normal text-muted">(select the correct answer)</span>
           </legend>
           {d.options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div
+              key={i}
+              className="flex items-center gap-2"
+              data-testid="question-editor-option"
+              data-entity-id={String(i + 1)}
+              data-selected={d.correctOption === i}
+            >
               <input
                 type="radio"
                 name="correct-option"
+                data-testid={`question-editor-option-correct-radio-${i + 1}`}
                 className="h-4 w-4 accent-primary"
                 aria-label={`Option ${i + 1} is correct`}
                 checked={d.correctOption === i}
@@ -195,6 +223,8 @@ function Editor({
               <input
                 className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/40"
                 aria-label={`Option ${i + 1}`}
+                name={`option-${i + 1}`}
+                data-testid={`question-editor-option-input-${i + 1}`}
                 value={opt}
                 readOnly={d.questionType === 'true_false'}
                 onChange={(e) =>
@@ -209,6 +239,7 @@ function Editor({
                   variant="ghost"
                   size="sm"
                   aria-label={`Remove option ${i + 1}`}
+                  data-testid={`question-editor-option-remove-btn-${i + 1}`}
                   onClick={() =>
                     setD((p) => ({
                       ...p,
@@ -228,7 +259,11 @@ function Editor({
             </div>
           ))}
           {errors.options && (
-            <p role="alert" className="text-xs text-error">
+            <p
+              role="alert"
+              className="text-xs text-error"
+              data-testid="question-editor-options-error"
+            >
               {errors.options}
             </p>
           )}
@@ -239,6 +274,7 @@ function Editor({
               className="justify-self-start"
               leftIcon={<Icon name="plus" size={16} />}
               onClick={() => set('options', [...d.options, ''])}
+              data-testid="question-editor-add-option-btn"
             >
               Add option
             </Button>
@@ -252,6 +288,7 @@ function Editor({
             step="0.5"
             value={d.marks}
             error={errors.marks}
+            data-testid="question-editor-marks-input"
             onChange={(e) => set('marks', e.target.value)}
           />
           <Input
@@ -262,6 +299,7 @@ function Editor({
             hint="Deducted for a wrong answer."
             value={d.negativeMarks}
             error={errors.negativeMarks}
+            data-testid="question-editor-negative-marks-input"
             onChange={(e) => set('negativeMarks', e.target.value)}
           />
         </div>
@@ -270,36 +308,48 @@ function Editor({
           rows={2}
           hint="Shown to students after the exam when the exam allows it."
           value={d.explanation}
+          data-testid="question-editor-explanation-textarea"
           onChange={(e) => set('explanation', e.target.value)}
         />
       </div>
-    </Modal>
+    </InlinePanel>
   );
 }
 
-/** Opens for a new question (questionId = null) or loads and edits an existing one. */
+/** Opens for a new question (questionId = null) or loads and edits an existing one. Shown in the page. */
 export function QuestionEditor({
   open,
   questionId,
   defaultSubject,
   onClose,
+  className,
 }: {
   open: boolean;
   questionId: string | null;
   defaultSubject: string;
   onClose: () => void;
+  className?: string;
 }) {
+  const extra = className ? { className } : {};
   const existing = useQuestion(open ? questionId : null);
   if (!open) return null;
   if (!questionId)
-    return <Editor key="new" question={null} defaultSubject={defaultSubject} onClose={onClose} />;
+    return (
+      <Editor
+        key="new"
+        question={null}
+        defaultSubject={defaultSubject}
+        onClose={onClose}
+        {...extra}
+      />
+    );
   if (existing.isError)
     return (
-      <Modal open onClose={onClose} title="Edit question">
-        <p role="alert" className="text-sm text-error">
+      <InlinePanel open onClose={onClose} title="Edit question" testId="question-editor" {...extra}>
+        <p role="alert" className="text-sm text-error" data-testid="question-editor-load-error">
           {errorText(existing.error)}
         </p>
-      </Modal>
+      </InlinePanel>
     );
   if (!existing.data) return null;
   return (
@@ -308,6 +358,7 @@ export function QuestionEditor({
       question={existing.data}
       defaultSubject={defaultSubject}
       onClose={onClose}
+      {...extra}
     />
   );
 }

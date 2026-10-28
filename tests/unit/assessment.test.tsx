@@ -136,7 +136,7 @@ describe('question bank', () => {
     renderRoute('/teacher/questions');
     expect(await screen.findByText('What is Ohm’s law about?')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'New question' }));
-    const dialog = await screen.findByRole('dialog', { name: 'New question' });
+    const dialog = await screen.findByRole('region', { name: 'New question' });
     await waitFor(() => expect(within(dialog).getByLabelText(/Subject/)).toHaveValue('s1'));
     await userEvent.type(within(dialog).getByLabelText(/^Question/), 'Unit of resistance?');
     for (const [i, text] of ['Volt', 'Ohm', 'Ampere', 'Watt'].entries())
@@ -222,7 +222,12 @@ describe('exam page', () => {
     expect(await screen.findByText(/This exam is published/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Unpublish' }),
+      within(await screen.findByRole('group', { name: 'Unpublish this exam?' })).getByRole(
+        'button',
+        {
+          name: 'Unpublish',
+        },
+      ),
     );
     await waitFor(() => expect(called('POST /api/v1/exams/e1/unpublish')).toHaveLength(1));
   });
@@ -311,7 +316,7 @@ describe('student exam screen', () => {
     expect(await screen.findByText('All answers saved')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Submit exam' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Submit your exam?' });
+    const dialog = await screen.findByRole('group', { name: 'Submit your exam?' });
     expect(dialog).toHaveTextContent('You answered 1 of 2 questions; 1 unanswered');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(called('POST /api/v1/attempts/a1/submit')).toHaveLength(1));
@@ -382,7 +387,9 @@ describe('student exam screen', () => {
     renderRoute('/student/exams');
     await userEvent.click(await screen.findByRole('button', { name: 'Start Unit Test 1' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Start now' }),
+      within(await screen.findByRole('group', { name: 'Start Unit Test 1?' })).getByRole('button', {
+        name: 'Start now',
+      }),
     );
     expect(await screen.findByText('Unit of resistance?')).toBeInTheDocument();
     expect(called('POST /api/v1/exams/e1/start')).toHaveLength(1);
@@ -504,7 +511,7 @@ describe('insights and dashboard', () => {
     });
     renderRoute('/org/results');
     await userEvent.click(await screen.findByRole('button', { name: 'View answers of Rahul Sen' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Rahul Sen · Unit Test 1' });
+    const drawer = await screen.findByRole('region', { name: 'Rahul Sen · Unit Test 1' });
     expect(await within(drawer).findByText('1. Unit of resistance?')).toBeInTheDocument();
     expect(within(drawer).getByText('Wrong · 0/2 marks')).toBeInTheDocument();
   });

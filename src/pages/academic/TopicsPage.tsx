@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Button } from '@/components/ui/Button';
@@ -28,18 +28,21 @@ const PAGE_SIZE = 20;
 const formSchema = topicSchema.extend({ subjectId: z.string().min(1, 'Choose a subject') });
 type FormValues = z.infer<typeof formSchema>;
 
-function TopicModal({
+/** Add form (above the list) or rename form (under the topic's row). */
+function TopicForm({
   open,
   topic,
   subjects,
   defaultSubject,
   onClose,
+  className,
 }: {
   open: boolean;
   topic: Topic | null;
   subjects: Array<{ value: string; label: string }>;
   defaultSubject: string;
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const create = useAcademicMutation((v: FormValues) => academicService.createTopic(v));
@@ -73,23 +76,29 @@ function TopicModal({
       });
   });
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title={topic ? `Rename ${topic.name}` : 'New topic'}
-      size="sm"
+      testId="topic-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="topic-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="topic-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="topic-form"
+            loading={create.isPending || update.isPending}
+            data-testid="topic-form-save-btn"
+          >
             {topic ? 'Save' : 'Add topic'}
           </Button>
         </>
       }
     >
-      <form id="topic-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="topic-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Subject"
           required
@@ -97,6 +106,7 @@ function TopicModal({
           disabled={Boolean(topic)}
           options={subjects}
           error={form.formState.errors.subjectId?.message}
+          data-testid="topic-form-subject-select"
           {...form.register('subjectId')}
         />
         <Input
@@ -105,10 +115,11 @@ function TopicModal({
           data-autofocus
           placeholder="e.g. Transformers"
           error={form.formState.errors.name?.message}
+          data-testid="topic-form-name-input"
           {...form.register('name')}
         />
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -142,6 +153,13 @@ export default function TopicsPage() {
     fn();
     setPage(1);
   };
+  // One inline form or confirmation at a time.
+  const show = (next: { creating?: boolean; editing?: Topic; deleting?: Topic }) => {
+    setCreating(Boolean(next.creating));
+    setEditing(next.editing ?? null);
+    setDeleting(next.deleting ?? null);
+  };
+  const closeForm = () => show({});
 
   return (
     <>
@@ -155,12 +173,21 @@ export default function TopicsPage() {
               leftIcon={<Icon name="plus" size={16} />}
               disabled={subjects.length === 0}
               title={subjects.length === 0 ? 'Create a subject first' : undefined}
-              onClick={() => setCreating(true)}
+              onClick={() => show({ creating: true })}
+              data-testid="topics-add-btn"
             >
               New topic
             </Button>
           </Can>
         }
+      />
+      <TopicForm
+        open={creating}
+        topic={null}
+        subjects={subjects}
+        defaultSubject={subject}
+        onClose={closeForm}
+        className="mb-4"
       />
       <Card padded={false}>
         <FilterBar
@@ -220,12 +247,55 @@ export default function TopicsPage() {
               cell: (t) => (
                 <RowActions
                   label={t.name}
-                  onEdit={perms.can('topic.update') ? () => setEditing(t) : undefined}
-                  onDelete={perms.can('topic.delete') ? () => setDeleting(t) : undefined}
+                  onEdit={perms.can('topic.update') ? () => show({ editing: t }) : undefined}
+                  onDelete={perms.can('topic.delete') ? () => show({ deleting: t }) : undefined}
                 />
               ),
             },
           ]}
+          testId="topic"
+          expandedRow={(t) =>
+            editing?.id === t.id ? (
+              <TopicForm
+                open
+                topic={t}
+                subjects={subjects}
+                defaultSubject={subject}
+                onClose={closeForm}
+              />
+            ) : deleting?.id === t.id ? (
+              <InlineConfirm
+                open
+                testId="topic-delete"
+                title="Delete this topic?"
+                confirmLabel="Delete topic"
+                loading={remove.isPending}
+                onCancel={closeForm}
+                onConfirm={() =>
+                  remove.mutate(t.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Topic deleted', variant: 'success' });
+                      closeForm();
+                    },
+                    onError: (err) => {
+                      toast({
+                        title: 'Could not delete the topic',
+                        description: errorText(err),
+                        variant: 'error',
+                      });
+                      closeForm();
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{t.name}</strong> will be removed. Topics used by questions cannot be
+                    deleted.
+                  </>
+                }
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -237,49 +307,6 @@ export default function TopicsPage() {
           />
         )}
       </Card>
-
-      <TopicModal
-        open={creating || Boolean(editing)}
-        topic={editing}
-        subjects={subjects}
-        defaultSubject={subject}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-      />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this topic?"
-        confirmLabel="Delete topic"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Topic deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (err) => {
-              toast({
-                title: 'Could not delete the topic',
-                description: errorText(err),
-                variant: 'error',
-              });
-              setDeleting(null);
-            },
-          })
-        }
-        message={
-          deleting && (
-            <>
-              <strong>{deleting.name}</strong> will be removed. Topics used by questions cannot be
-              deleted.
-            </>
-          )
-        }
-      />
     </>
   );
 }

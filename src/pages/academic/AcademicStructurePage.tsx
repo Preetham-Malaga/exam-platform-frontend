@@ -5,13 +5,13 @@
 // DEPENDS ON: features/academic/*, shared layout/form/dialog components.
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -86,167 +86,194 @@ function LevelsCard() {
           {items.map((l, i) => (
             <li
               key={l.id}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
+              className="rounded-lg border border-border"
+              data-testid="level-row"
+              data-entity-id={l.id}
             >
-              <span className="w-5 text-xs text-muted">{i + 1}.</span>
-              <span className="flex-1 font-medium text-text">{l.name}</span>
-              <Badge tone="neutral">
-                {l.unitCount} {l.unitCount === 1 ? 'unit' : 'units'}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Move ${l.name} up`}
-                disabled={i === 0 || reorder.isPending}
-                onClick={() => move(i, -1)}
-              >
-                ↑
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Move ${l.name} down`}
-                disabled={i === items.length - 1 || reorder.isPending}
-                onClick={() => move(i, 1)}
-              >
-                ↓
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Rename ${l.name}`}
-                onClick={() => setRenaming(l)}
-              >
-                <Icon name="edit" size={16} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Delete ${l.name}`}
-                disabled={l.unitCount > 0}
-                title={l.unitCount > 0 ? 'Units use this level' : undefined}
-                onClick={() => setDeleting(l)}
-              >
-                <Icon name="trash" size={16} />
-              </Button>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="w-5 text-xs text-muted">{i + 1}.</span>
+                <span className="flex-1 font-medium text-text" data-testid="level-row-name">
+                  {l.name}
+                </span>
+                <Badge tone="neutral">
+                  {l.unitCount} {l.unitCount === 1 ? 'unit' : 'units'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Move ${l.name} up`}
+                  disabled={i === 0 || reorder.isPending}
+                  onClick={() => move(i, -1)}
+                  data-testid="level-row-up-btn"
+                >
+                  ↑
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Move ${l.name} down`}
+                  disabled={i === items.length - 1 || reorder.isPending}
+                  onClick={() => move(i, 1)}
+                  data-testid="level-row-down-btn"
+                >
+                  ↓
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Rename ${l.name}`}
+                  onClick={() => {
+                    setDeleting(null);
+                    setRenaming(l);
+                  }}
+                  data-testid="level-row-rename-btn"
+                >
+                  <Icon name="edit" size={16} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Delete ${l.name}`}
+                  disabled={l.unitCount > 0}
+                  title={l.unitCount > 0 ? 'Units use this level' : undefined}
+                  onClick={() => {
+                    setRenaming(null);
+                    setDeleting(l);
+                  }}
+                  data-testid="level-row-delete-btn"
+                >
+                  <Icon name="trash" size={16} />
+                </Button>
+              </div>
+              {renaming?.id === l.id && (
+                <RenameLevelForm
+                  level={l}
+                  onClose={() => setRenaming(null)}
+                  saving={rename.isPending}
+                  onSave={(name) =>
+                    rename.mutate(
+                      { id: l.id, name },
+                      {
+                        onSuccess: () => {
+                          toast({ title: 'Level renamed', variant: 'success' });
+                          setRenaming(null);
+                        },
+                        onError: (e) =>
+                          toast({
+                            title: 'Could not rename the level',
+                            description: errorText(e),
+                            variant: 'error',
+                          }),
+                      },
+                    )
+                  }
+                />
+              )}
+              <InlineConfirm
+                open={deleting?.id === l.id}
+                testId="level-delete"
+                className="m-3 mt-0"
+                title="Delete this level?"
+                confirmLabel="Delete level"
+                loading={remove.isPending}
+                onCancel={() => setDeleting(null)}
+                onConfirm={() =>
+                  remove.mutate(l.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Level deleted', variant: 'success' });
+                      setDeleting(null);
+                    },
+                    onError: (e) => {
+                      toast({
+                        title: 'Could not delete the level',
+                        description: errorText(e),
+                        variant: 'error',
+                      });
+                      setDeleting(null);
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{l.name}</strong> will be removed from your hierarchy.
+                  </>
+                }
+              />
             </li>
           ))}
         </ol>
       )}
-      <form onSubmit={onAdd} noValidate className="mt-4 flex items-end gap-2">
+      <form
+        onSubmit={onAdd}
+        noValidate
+        className="mt-4 flex items-end gap-2"
+        data-testid="level-add-form"
+      >
         <div className="flex-1">
           <Input
             label="New level"
             placeholder="e.g. Section"
             error={addForm.formState.errors.name?.message}
+            data-testid="level-add-name-input"
             {...addForm.register('name')}
           />
         </div>
-        <Button type="submit" loading={create.isPending} leftIcon={<Icon name="plus" size={16} />}>
+        <Button
+          type="submit"
+          loading={create.isPending}
+          leftIcon={<Icon name="plus" size={16} />}
+          data-testid="level-add-btn"
+        >
           Add level
         </Button>
       </form>
-
-      <RenameLevelModal
-        level={renaming}
-        onClose={() => setRenaming(null)}
-        saving={rename.isPending}
-        onSave={(name) =>
-          renaming &&
-          rename.mutate(
-            { id: renaming.id, name },
-            {
-              onSuccess: () => {
-                toast({ title: 'Level renamed', variant: 'success' });
-                setRenaming(null);
-              },
-              onError: (e) =>
-                toast({
-                  title: 'Could not rename the level',
-                  description: errorText(e),
-                  variant: 'error',
-                }),
-            },
-          )
-        }
-      />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this level?"
-        confirmLabel="Delete level"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Level deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (e) => {
-              toast({
-                title: 'Could not delete the level',
-                description: errorText(e),
-                variant: 'error',
-              });
-              setDeleting(null);
-            },
-          })
-        }
-        message={
-          deleting && (
-            <>
-              <strong>{deleting.name}</strong> will be removed from your hierarchy.
-            </>
-          )
-        }
-      />
     </Card>
   );
 }
 
-function RenameLevelModal({
+/** Rename in place, under the level's row. Esc cancels. */
+function RenameLevelForm({
   level,
   onClose,
   onSave,
   saving,
 }: {
-  level: AcademicLevel | null;
+  level: AcademicLevel;
   onClose: () => void;
   onSave: (name: string) => void;
   saving: boolean;
 }) {
   const form = useForm<LevelValues>({
     resolver: zodResolver(levelSchema),
-    values: { name: level?.name ?? '' },
+    values: { name: level.name },
   });
   return (
-    <Modal
-      open={Boolean(level)}
-      onClose={onClose}
-      title="Rename level"
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="rename-level-form" loading={saving}>
-            Save
-          </Button>
-        </>
-      }
+    <form
+      noValidate
+      onSubmit={form.handleSubmit((v) => onSave(v.name))}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+      className="flex flex-wrap items-end gap-2 border-t border-border px-3 py-3"
+      data-testid="level-rename-form"
     >
-      <form id="rename-level-form" noValidate onSubmit={form.handleSubmit((v) => onSave(v.name))}>
+      <div className="min-w-40 flex-1">
         <Input
           label="Level name"
           required
-          data-autofocus
+          autoFocus
           error={form.formState.errors.name?.message}
+          data-testid="level-rename-name-input"
           {...form.register('name')}
         />
-      </form>
-    </Modal>
+      </div>
+      <Button variant="outline" onClick={onClose} data-testid="level-rename-cancel-btn">
+        Cancel
+      </Button>
+      <Button type="submit" loading={saving} data-testid="level-rename-save-btn">
+        Save
+      </Button>
+    </form>
   );
 }
 
@@ -254,14 +281,17 @@ function RenameLevelModal({
 
 type UnitDialog = { mode: 'create'; parent: UnitNode | null } | { mode: 'edit'; unit: UnitNode };
 
-function UnitModal({
+/** Add form (at the top, or under the parent unit) or edit form (under the unit). */
+function UnitForm({
   dialog,
   levels,
   onClose,
+  className,
 }: {
   dialog: UnitDialog | null;
   levels: AcademicLevel[];
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const create = useAcademicMutation(
@@ -322,28 +352,36 @@ function UnitModal({
       ? `Add a unit under ${parent.name}`
       : 'Add a top-level unit';
   return (
-    <Modal
+    <InlinePanel
       open={Boolean(dialog)}
       onClose={close}
       title={title}
+      testId="unit-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="unit-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="unit-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="unit-form"
+            loading={create.isPending || update.isPending}
+            data-testid="unit-form-save-btn"
+          >
             {editing ? 'Save' : 'Add unit'}
           </Button>
         </>
       }
     >
-      <form id="unit-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="unit-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Level"
           required
           disabled={Boolean(editing)}
           options={allowed.map((l) => ({ value: l.id, label: l.name }))}
           error={form.formState.errors.levelId?.message}
+          data-testid="unit-form-level-select"
           {...form.register('levelId')}
         />
         <Input
@@ -352,6 +390,7 @@ function UnitModal({
           data-autofocus
           placeholder="e.g. Electrical Engineering"
           error={form.formState.errors.name?.message}
+          data-testid="unit-form-name-input"
           {...form.register('name')}
         />
         <Input
@@ -360,6 +399,7 @@ function UnitModal({
           placeholder="e.g. EEE"
           hint="Unique in your organization."
           error={form.formState.errors.code?.message}
+          data-testid="unit-form-code-input"
           {...form.register('code')}
         />
         {editing && (
@@ -369,11 +409,12 @@ function UnitModal({
               { value: 'active', label: 'Active' },
               { value: 'inactive', label: 'Inactive' },
             ]}
+            data-testid="unit-form-status-select"
             {...form.register('status')}
           />
         )}
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -383,18 +424,27 @@ function UnitRow({
   onAdd,
   onEdit,
   onDelete,
+  below,
 }: {
   node: TreeNode;
   levels: AcademicLevel[];
   onAdd: (u: UnitNode) => void;
   onEdit: (u: UnitNode) => void;
   onDelete: (u: UnitNode) => void;
+  /** The inline form or confirmation that belongs under this unit, if any. */
+  below: (u: UnitNode) => ReactNode;
 }) {
   const [open, setOpen] = useState(true);
   const level = levels.find((l) => l.id === node.levelId);
   const canHaveChildren = childLevels(levels, node).length > 0;
+  const inline = below(node);
   return (
-    <li>
+    <li
+      data-testid="unit-node"
+      data-entity-id={node.id}
+      data-entity-code={node.code}
+      data-expanded={node.children.length > 0 ? open : undefined}
+    >
       <div
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-background"
         style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
@@ -406,6 +456,7 @@ function UnitRow({
             aria-expanded={open}
             aria-label={`${open ? 'Collapse' : 'Expand'} ${node.name}`}
             onClick={() => setOpen((o) => !o)}
+            data-testid="unit-node-toggle-btn"
           >
             {open ? '▾' : '▸'}
           </button>
@@ -423,6 +474,7 @@ function UnitRow({
               size="sm"
               aria-label={`Add a unit under ${node.name}`}
               onClick={() => onAdd(node)}
+              data-testid="unit-node-add-btn"
             >
               <Icon name="plus" size={16} />
             </Button>
@@ -432,6 +484,7 @@ function UnitRow({
             size="sm"
             aria-label={`Edit ${node.name}`}
             onClick={() => onEdit(node)}
+            data-testid="unit-node-edit-btn"
           >
             <Icon name="edit" size={16} />
           </Button>
@@ -440,11 +493,17 @@ function UnitRow({
             size="sm"
             aria-label={`Delete ${node.name}`}
             onClick={() => onDelete(node)}
+            data-testid="unit-node-delete-btn"
           >
             <Icon name="trash" size={16} />
           </Button>
         </span>
       </div>
+      {inline && (
+        <div className="py-2 pr-2" style={{ paddingLeft: `${node.depth * 20 + 36}px` }}>
+          {inline}
+        </div>
+      )}
       {open && node.children.length > 0 && (
         <ul>
           {node.children.map((c) => (
@@ -455,6 +514,7 @@ function UnitRow({
               onAdd={onAdd}
               onEdit={onEdit}
               onDelete={onDelete}
+              below={below}
             />
           ))}
         </ul>
@@ -471,6 +531,56 @@ function UnitsCard() {
   const [deleting, setDeleting] = useState<UnitNode | null>(null);
   const roots = useMemo(() => buildTree(tree.data?.units ?? []), [tree.data]);
   const levels = tree.data?.levels ?? [];
+  // One inline form or confirmation at a time.
+  const openForm = (d: UnitDialog) => {
+    setDeleting(null);
+    setDialog(d);
+  };
+  const askDelete = (u: UnitNode) => {
+    setDialog(null);
+    setDeleting(u);
+  };
+  const below = (u: UnitNode): ReactNode => {
+    if (
+      (dialog?.mode === 'edit' && dialog.unit.id === u.id) ||
+      (dialog?.mode === 'create' && dialog.parent?.id === u.id)
+    )
+      return <UnitForm dialog={dialog} levels={levels} onClose={() => setDialog(null)} />;
+    if (deleting?.id !== u.id) return null;
+    return (
+      <InlineConfirm
+        open
+        testId="unit-delete"
+        title="Delete this unit?"
+        confirmLabel="Delete unit"
+        loading={remove.isPending}
+        onCancel={() => setDeleting(null)}
+        onConfirm={() =>
+          remove.mutate(u.id, {
+            onSuccess: () => {
+              toast({ title: 'Unit deleted', variant: 'success' });
+              setDeleting(null);
+            },
+            onError: (e) => {
+              toast({
+                title: 'Could not delete the unit',
+                description: errorText(e),
+                variant: 'error',
+              });
+              setDeleting(null);
+            },
+          })
+        }
+        message={
+          <>
+            <strong>{u.name}</strong> will be removed. A unit that still has sub-units, courses,
+            subjects or students cannot be deleted.
+          </>
+        }
+      />
+    );
+  };
+  const addingTopLevel = dialog?.mode === 'create' && dialog.parent === null;
 
   return (
     <Card
@@ -480,12 +590,21 @@ function UnitsCard() {
           size="sm"
           leftIcon={<Icon name="plus" size={16} />}
           disabled={!levels.length}
-          onClick={() => setDialog({ mode: 'create', parent: null })}
+          onClick={() => openForm({ mode: 'create', parent: null })}
+          data-testid="unit-add-top-level-btn"
         >
           Add top-level unit
         </Button>
       }
     >
+      {addingTopLevel && (
+        <UnitForm
+          dialog={dialog}
+          levels={levels}
+          onClose={() => setDialog(null)}
+          className="mb-4"
+        />
+      )}
       {tree.isPending ? (
         <LoadingState compact />
       ) : tree.isError ? (
@@ -511,48 +630,15 @@ function UnitsCard() {
                 key={n.id}
                 node={n}
                 levels={levels}
-                onAdd={(u) => setDialog({ mode: 'create', parent: u })}
-                onEdit={(u) => setDialog({ mode: 'edit', unit: u })}
-                onDelete={setDeleting}
+                onAdd={(u) => openForm({ mode: 'create', parent: u })}
+                onEdit={(u) => openForm({ mode: 'edit', unit: u })}
+                onDelete={askDelete}
+                below={below}
               />
             ))}
           </ul>
         </>
       )}
-
-      <UnitModal dialog={dialog} levels={levels} onClose={() => setDialog(null)} />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this unit?"
-        confirmLabel="Delete unit"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Unit deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (e) => {
-              toast({
-                title: 'Could not delete the unit',
-                description: errorText(e),
-                variant: 'error',
-              });
-              setDeleting(null);
-            },
-          })
-        }
-        message={
-          deleting && (
-            <>
-              <strong>{deleting.name}</strong> will be removed. A unit that still has sub-units,
-              courses, subjects or students cannot be deleted.
-            </>
-          )
-        }
-      />
     </Card>
   );
 }

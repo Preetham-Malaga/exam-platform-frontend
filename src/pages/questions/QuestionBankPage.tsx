@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { useToast } from '@/components/feedback/Toast';
 import { Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog } from '@/components/modals/Dialog';
+import { InlineConfirm } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -69,14 +69,29 @@ export default function QuestionBankPage() {
   };
   const fail = (title: string) => (e: unknown) =>
     toast({ title, description: errorText(e), variant: 'error' });
+  // One inline editor or confirmation at a time.
+  const openEditor = (id: string | null) => {
+    setDeleting(null);
+    setEditor({ id });
+  };
+  const askDelete = (row: QuestionSummary) => {
+    setEditor(null);
+    setDeleting(row);
+  };
+  const defaultSubject = subject || subjectOptions[0]?.value || '';
 
   const menu = (row: QuestionSummary): MenuItem[] => {
     const items: MenuItem[] = [];
     if (perms.can('question.update'))
-      items.push({ label: 'Edit', onSelect: () => setEditor({ id: row.id }) });
+      items.push({
+        label: 'Edit',
+        testId: 'row-actions-edit-menu-item',
+        onSelect: () => openEditor(row.id),
+      });
     if (row.status !== 'published' && perms.can('question.publish'))
       items.push({
         label: 'Publish',
+        testId: 'row-actions-publish-menu-item',
         onSelect: () =>
           publish.mutate(row.id, {
             onSuccess: () => toast({ title: 'Question published', variant: 'success' }),
@@ -86,6 +101,7 @@ export default function QuestionBankPage() {
     if (row.status === 'published' && perms.can('question.update'))
       items.push({
         label: 'Archive',
+        testId: 'row-actions-archive-menu-item',
         onSelect: () =>
           setQStatus.mutate(
             { id: row.id, status: 'archived' },
@@ -98,6 +114,7 @@ export default function QuestionBankPage() {
     if (row.status === 'archived' && perms.can('question.update'))
       items.push({
         label: 'Back to draft',
+        testId: 'row-actions-draft-menu-item',
         onSelect: () =>
           setQStatus.mutate(
             { id: row.id, status: 'draft' },
@@ -105,7 +122,12 @@ export default function QuestionBankPage() {
           ),
       });
     if (perms.can('question.delete'))
-      items.push({ label: 'Delete', danger: true, onSelect: () => setDeleting(row) });
+      items.push({
+        label: 'Delete',
+        danger: true,
+        testId: 'row-actions-delete-menu-item',
+        onSelect: () => askDelete(row),
+      });
     return items;
   };
 
@@ -121,12 +143,20 @@ export default function QuestionBankPage() {
               leftIcon={<Icon name="plus" size={16} />}
               disabled={!subjectOptions.length}
               title={subjectOptions.length ? undefined : 'No subject available'}
-              onClick={() => setEditor({ id: null })}
+              onClick={() => openEditor(null)}
+              data-testid="questions-add-btn"
             >
               New question
             </Button>
           </Can>
         }
+      />
+      <QuestionEditor
+        open={editor?.id === null}
+        questionId={null}
+        defaultSubject={defaultSubject}
+        onClose={() => setEditor(null)}
+        className="mb-4"
       />
       <Card padded={false}>
         <FilterBar
@@ -258,6 +288,7 @@ export default function QuestionBankPage() {
                 return items.length ? (
                   <Dropdown
                     label={`Actions for question ${r.questionText.slice(0, 40)}`}
+                    testId="row-actions"
                     trigger={<Icon name="more" />}
                     items={items}
                   />
@@ -265,6 +296,39 @@ export default function QuestionBankPage() {
               },
             },
           ]}
+          testId="question"
+          expandedRow={(r) =>
+            editor?.id === r.id ? (
+              <QuestionEditor
+                open
+                questionId={r.id}
+                defaultSubject={defaultSubject}
+                onClose={() => setEditor(null)}
+              />
+            ) : deleting?.id === r.id ? (
+              <InlineConfirm
+                open
+                testId="question-delete"
+                title="Delete this question?"
+                confirmLabel="Delete question"
+                loading={remove.isPending}
+                onCancel={() => setDeleting(null)}
+                onConfirm={() =>
+                  remove.mutate(r.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Question deleted', variant: 'success' });
+                      setDeleting(null);
+                    },
+                    onError: (e) => {
+                      fail('Could not delete the question')(e);
+                      setDeleting(null);
+                    },
+                  })
+                }
+                message="Questions used in an exam cannot be deleted; archive them instead."
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -276,34 +340,6 @@ export default function QuestionBankPage() {
           />
         )}
       </Card>
-
-      <QuestionEditor
-        open={Boolean(editor)}
-        questionId={editor?.id ?? null}
-        defaultSubject={subject || subjectOptions[0]?.value || ''}
-        onClose={() => setEditor(null)}
-      />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this question?"
-        confirmLabel="Delete question"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Question deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (e) => {
-              fail('Could not delete the question')(e);
-              setDeleting(null);
-            },
-          })
-        }
-        message="Questions used in an exam cannot be deleted; archive them instead."
-      />
     </>
   );
 }

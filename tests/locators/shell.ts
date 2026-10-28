@@ -1,10 +1,10 @@
-// Locators for the signed-in frame (sidebar, mobile drawer, topbar, account menu). Same names as docs/locators.md → "App shell".
+// Locators for the signed-in frame (sidebar, mobile menu, topbar, account menu). Same names as docs/locators.md → "App shell".
 import { tid } from './tid';
 
 export const AppShell = {
   nav: tid('nav'),
-  navDrawer: tid('nav-drawer'),
-  navDrawerCloseBtn: tid('nav-drawer-close-btn'),
+  /** Small screens: the menu opens in the page under the topbar (no drawer). */
+  navMobileMenu: tid('nav-mobile-menu'),
   navToggleBtn: tid('topbar-nav-toggle-btn'),
   userName: tid('topbar-user-name'),
   userEmail: tid('topbar-user-email'),

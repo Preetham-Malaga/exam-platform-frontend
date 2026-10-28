@@ -1,10 +1,11 @@
-// PURPOSE: The authenticated page frame: 236px sidebar (desktop, collapsible), drawer navigation (tablet/mobile), topbar, content.
-// WHY: One responsive shell for organization, teacher, student-dashboard and platform areas.
-// DEPENDS ON: Sidebar.tsx, Topbar.tsx, Dialog.tsx (Drawer), hooks/useMediaQuery.ts, React Router Outlet.
+// PURPOSE: The authenticated page frame: 236px sidebar (desktop, collapsible), menu panel under the topbar
+//          (tablet/mobile), topbar, content.
+// WHY: One responsive shell for organization, teacher, student-dashboard and platform areas. No pop-ups: on small
+//      screens the menu opens in the page, under the topbar, and pushes the content down.
+// DEPENDS ON: Sidebar.tsx, Topbar.tsx, hooks/useMediaQuery.ts, React Router Outlet.
 
 import { useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Drawer } from '@/components/modals/Dialog';
 import type { MenuItem } from '@/components/ui/Dropdown';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/utils/cn';
@@ -29,8 +30,9 @@ export function AppShell({
 }) {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const [collapsed, setCollapsed] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const showSidebar = isDesktop && !collapsed;
+  const showMobileMenu = !isDesktop && menuOpen;
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,24 +46,29 @@ export function AppShell({
       {showSidebar && (
         <Sidebar sections={sections} {...(organizationName ? { organizationName } : {})} />
       )}
-      {!isDesktop && (
-        <Drawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          title="Navigation"
-          side="left"
-          testId="nav-drawer"
-        >
-          <SidebarNav sections={sections} variant="light" onNavigate={() => setDrawerOpen(false)} />
-        </Drawer>
-      )}
       <div className={cn('flex min-h-screen flex-col', showSidebar && 'lg:pl-sidebar')}>
         <Topbar
           user={user}
           {...(menuItems ? { menuItems } : {})}
           {...(topbarActions ? { actions: topbarActions } : {})}
-          onMenuClick={() => (isDesktop ? setCollapsed((c) => !c) : setDrawerOpen(true))}
+          menuExpanded={isDesktop ? showSidebar : menuOpen}
+          onMenuClick={() => (isDesktop ? setCollapsed((c) => !c) : setMenuOpen((o) => !o))}
         />
+        {showMobileMenu && (
+          <div
+            id="mobile-menu"
+            className="border-b border-border bg-card px-3 py-3 shadow-sm"
+            data-testid="nav-mobile-menu"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setMenuOpen(false);
+            }}
+          >
+            {organizationName && (
+              <p className="mb-2 truncate px-3 text-xs text-muted">{organizationName}</p>
+            )}
+            <SidebarNav sections={sections} variant="light" onNavigate={() => setMenuOpen(false)} />
+          </div>
+        )}
         <main id="main-content" tabIndex={-1} className="flex-1 p-4 focus:outline-none sm:p-6">
           {children ?? <Outlet />}
         </main>

@@ -164,7 +164,7 @@ describe('Academic Structure page', () => {
     });
     renderRoute('/org/academic');
     await userEvent.click(await screen.findByRole('button', { name: 'Add a unit under EEE' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a unit under EEE' });
+    const dialog = await screen.findByRole('region', { name: 'Add a unit under EEE' });
     const level = within(dialog).getByLabelText(/Level/);
     expect(
       within(level)
@@ -188,7 +188,7 @@ describe('Academic Structure page', () => {
     setup('OWNER');
     renderRoute('/org/academic');
     await userEvent.click(await screen.findByRole('button', { name: 'Add top-level unit' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a top-level unit' });
+    const dialog = await screen.findByRole('region', { name: 'Add a top-level unit' });
     await userEvent.type(within(dialog).getByLabelText(/Name/), 'MBA');
     await userEvent.type(within(dialog).getByLabelText(/Code/), 'has space');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add unit' }));
@@ -209,7 +209,7 @@ describe('Academic Structure page', () => {
     });
     renderRoute('/org/academic');
     await userEvent.click(await screen.findByRole('button', { name: 'Delete B.Tech' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Delete this unit?' });
+    const dialog = await screen.findByRole('group', { name: 'Delete this unit?' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete unit' }));
     expect(await screen.findByText('Could not delete the unit')).toBeInTheDocument();
     expect(
@@ -239,7 +239,7 @@ describe('Courses page', () => {
     renderRoute('/org/courses');
     expect(await screen.findByText('B.Tech Programme')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'New course' }));
-    const dialog = await screen.findByRole('dialog', { name: 'New course' });
+    const dialog = await screen.findByRole('region', { name: 'New course' });
     await userEvent.type(within(dialog).getByLabelText(/Name/), 'MBA');
     await userEvent.type(within(dialog).getByLabelText(/Code/), 'MBA');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create course' }));
@@ -291,7 +291,7 @@ describe('Subjects and topics for a teacher', () => {
     renderRoute('/teacher/topics');
     expect(await screen.findByText('Transformers')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'New topic' }));
-    const dialog = await screen.findByRole('dialog', { name: 'New topic' });
+    const dialog = await screen.findByRole('region', { name: 'New topic' });
     await userEvent.selectOptions(within(dialog).getByLabelText(/Subject/), 'Power Systems (S2)');
     await userEvent.type(within(dialog).getByLabelText(/Topic name/), 'Load flow');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add topic' }));

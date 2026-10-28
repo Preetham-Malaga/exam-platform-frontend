@@ -1,13 +1,13 @@
-// PURPOSE: Drawer to choose a teacher's scope: the subjects, courses and academic units they may work in.
+// PURPOSE: Inline panel (under the teacher's row) to choose a teacher's scope: the subjects, courses and academic units they may work in.
 // WHY: A teacher only sees questions, topics and exams inside this scope (enforced by the database via app.in_scope).
 //      Assigning a course or a unit covers every subject in it, so the choice can stay short.
-// DEPENDS ON: features/teachers/hooks.ts, features/academic/hooks.ts + tree.ts, components/modals/Dialog.tsx.
+// DEPENDS ON: features/teachers/hooks.ts, features/academic/hooks.ts + tree.ts, components/inline/Inline.tsx.
 
 import { useMemo, useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/feedback/States';
 import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input } from '@/components/forms/Form';
-import { Drawer } from '@/components/modals/Dialog';
+import { InlinePanel } from '@/components/inline/Inline';
 import { Button } from '@/components/ui/Button';
 import { useCourses, useSubjects, useUnitTree } from '@/features/academic/hooks';
 import { unitOptions } from '@/features/academic/tree';
@@ -38,7 +38,7 @@ function Section({
   const shown = options.filter((o) => o.label.toLowerCase().includes(filter.trim().toLowerCase()));
   const count = options.filter((o) => selected.has(keyOf(type, o.value))).length;
   return (
-    <fieldset className="grid gap-2">
+    <fieldset className="grid gap-2" data-testid={`teacher-scope-${type}-section`}>
       <legend className="text-sm font-semibold text-text">
         {title} <span className="font-normal text-muted">({count} selected)</span>
       </legend>
@@ -47,6 +47,7 @@ function Section({
         <Input
           label={`Filter ${title.toLowerCase()}`}
           value={filter}
+          data-testid={`teacher-scope-${type}-filter-input`}
           onChange={(e) => setFilter(e.target.value)}
         />
       )}
@@ -59,6 +60,8 @@ function Section({
               key={o.value}
               label={o.label}
               checked={selected.has(keyOf(type, o.value))}
+              data-testid={`teacher-scope-${type}-checkbox`}
+              data-value={o.value}
               onChange={() => toggle(keyOf(type, o.value))}
             />
           ))}
@@ -150,10 +153,10 @@ function ScopeForm({
         toggle={toggle}
       />
       <div className="flex justify-end gap-2 border-t border-border pt-4">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} data-testid="teacher-scope-cancel-btn">
           Cancel
         </Button>
-        <Button loading={save.isPending} onClick={submit}>
+        <Button loading={save.isPending} onClick={submit} data-testid="teacher-scope-save-btn">
           Save scope
         </Button>
       </div>
@@ -161,13 +164,7 @@ function ScopeForm({
   );
 }
 
-export function ScopeDrawer({
-  teacher,
-  onClose,
-}: {
-  teacher: Teacher | null;
-  onClose: () => void;
-}) {
+export function ScopePanel({ teacher, onClose }: { teacher: Teacher | null; onClose: () => void }) {
   const detail = useTeacher(teacher?.id ?? null);
   const subjects = useSubjects(
     { page: 1, pageSize: 100, sort: 'name', status: 'active' },
@@ -198,10 +195,11 @@ export function ScopeDrawer({
   const scopes = detail.data?.scopes ?? [];
 
   return (
-    <Drawer
+    <InlinePanel
       open={Boolean(teacher)}
       onClose={onClose}
       title={teacher ? `Scope of ${teacher.fullName}` : 'Scope'}
+      testId="teacher-scope"
     >
       {!teacher ? null : failed ? (
         <ErrorState
@@ -223,6 +221,6 @@ export function ScopeDrawer({
           onClose={onClose}
         />
       )}
-    </Drawer>
+    </InlinePanel>
   );
 }

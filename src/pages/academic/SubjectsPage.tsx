@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select, Textarea } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -45,18 +45,21 @@ const toBody = (v: SubjectValues) => ({
   academicUnitId: orNull(v.academicUnitId),
 });
 
-function SubjectModal({
+/** Add form (above the list) or edit form (under the subject's row). */
+function SubjectForm({
   open,
   subject,
   courses,
   units,
   onClose,
+  className,
 }: {
   open: boolean;
   subject: Subject | null;
   courses: Option[];
   units: Option[];
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
   const create = useAcademicMutation((v: SubjectValues) =>
@@ -100,28 +103,36 @@ function SubjectModal({
   });
   const e = form.formState.errors;
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title={subject ? `Edit ${subject.name}` : 'New subject'}
+      testId="subject-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="subject-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="subject-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="subject-form"
+            loading={create.isPending || update.isPending}
+            data-testid="subject-form-save-btn"
+          >
             {subject ? 'Save' : 'Create subject'}
           </Button>
         </>
       }
     >
-      <form id="subject-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="subject-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Name"
           required
           data-autofocus
           placeholder="e.g. Electrical Machines"
           error={e.name?.message}
+          data-testid="subject-form-name-input"
           {...form.register('name')}
         />
         <Input
@@ -130,12 +141,14 @@ function SubjectModal({
           placeholder="e.g. EE201"
           hint="Unique in your organization."
           error={e.code?.message}
+          data-testid="subject-form-code-input"
           {...form.register('code')}
         />
         <Select
           label="Course"
           placeholder="No course"
           options={courses}
+          data-testid="subject-form-course-select"
           {...form.register('courseId')}
         />
         <Select
@@ -143,17 +156,27 @@ function SubjectModal({
           placeholder="No unit"
           hint="Teachers scoped to this unit (or a parent unit) can work on the subject."
           options={units}
+          data-testid="subject-form-unit-select"
           {...form.register('academicUnitId')}
         />
+        {subject && (
+          <Select
+            label="Status"
+            options={STATUS_OPTIONS}
+            data-testid="subject-form-status-select"
+            {...form.register('status')}
+          />
+        )}
         <Textarea
           label="Description"
           rows={3}
+          className="sm:col-span-2"
           error={e.description?.message}
+          data-testid="subject-form-description-textarea"
           {...form.register('description')}
         />
-        {subject && <Select label="Status" options={STATUS_OPTIONS} {...form.register('status')} />}
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
@@ -191,6 +214,13 @@ export default function SubjectsPage() {
     fn();
     setPage(1);
   };
+  // One inline form or confirmation at a time.
+  const show = (next: { creating?: boolean; editing?: Subject; deleting?: Subject }) => {
+    setCreating(Boolean(next.creating));
+    setEditing(next.editing ?? null);
+    setDeleting(next.deleting ?? null);
+  };
+  const closeForm = () => show({});
   const manages = perms.canAny(['subject.update', 'subject.delete']);
 
   return (
@@ -205,11 +235,23 @@ export default function SubjectsPage() {
         breadcrumb={[{ label: 'Content Management' }, { label: 'Subjects' }]}
         actions={
           <Can permission="subject.create">
-            <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setCreating(true)}>
+            <Button
+              leftIcon={<Icon name="plus" size={16} />}
+              onClick={() => show({ creating: true })}
+              data-testid="subjects-add-btn"
+            >
               New subject
             </Button>
           </Can>
         }
+      />
+      <SubjectForm
+        open={creating}
+        subject={null}
+        courses={courses}
+        units={units}
+        onClose={closeForm}
+        className="mb-4"
       />
       <Card padded={false}>
         <FilterBar
@@ -294,12 +336,50 @@ export default function SubjectsPage() {
               cell: (s) => (
                 <RowActions
                   label={s.name}
-                  onEdit={perms.can('subject.update') ? () => setEditing(s) : undefined}
-                  onDelete={perms.can('subject.delete') ? () => setDeleting(s) : undefined}
+                  onEdit={perms.can('subject.update') ? () => show({ editing: s }) : undefined}
+                  onDelete={perms.can('subject.delete') ? () => show({ deleting: s }) : undefined}
                 />
               ),
             },
           ]}
+          testId="subject"
+          rowCode={(s) => s.code}
+          expandedRow={(s) =>
+            editing?.id === s.id ? (
+              <SubjectForm open subject={s} courses={courses} units={units} onClose={closeForm} />
+            ) : deleting?.id === s.id ? (
+              <InlineConfirm
+                open
+                testId="subject-delete"
+                title="Delete this subject?"
+                confirmLabel="Delete subject"
+                loading={remove.isPending}
+                onCancel={closeForm}
+                onConfirm={() =>
+                  remove.mutate(s.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Subject deleted', variant: 'success' });
+                      closeForm();
+                    },
+                    onError: (err) => {
+                      toast({
+                        title: 'Could not delete the subject',
+                        description: errorText(err),
+                        variant: 'error',
+                      });
+                      closeForm();
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{s.name}</strong> will be removed. Subjects that still have topics or
+                    questions cannot be deleted.
+                  </>
+                }
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -311,49 +391,6 @@ export default function SubjectsPage() {
           />
         )}
       </Card>
-
-      <SubjectModal
-        open={creating || Boolean(editing)}
-        subject={editing}
-        courses={courses}
-        units={units}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-      />
-      <ConfirmDialog
-        open={Boolean(deleting)}
-        title="Delete this subject?"
-        confirmLabel="Delete subject"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() =>
-          deleting &&
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              toast({ title: 'Subject deleted', variant: 'success' });
-              setDeleting(null);
-            },
-            onError: (err) => {
-              toast({
-                title: 'Could not delete the subject',
-                description: errorText(err),
-                variant: 'error',
-              });
-              setDeleting(null);
-            },
-          })
-        }
-        message={
-          deleting && (
-            <>
-              <strong>{deleting.name}</strong> will be removed. Subjects that still have topics or
-              questions cannot be deleted.
-            </>
-          )
-        }
-      />
     </>
   );
 }

@@ -2,7 +2,7 @@
 // WHY: Every list page (students, questions, exams, results, audit logs) needs the same server-side paginated table.
 // DEPENDS ON: feedback/States.tsx, ui/Button.tsx, Icon.tsx.
 
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -37,6 +37,8 @@ export interface DataTableProps<T> {
   testId?: string;
   /** Business code shown on the row (exam code, roll number); exposed as data-entity-code. */
   rowCode?: (row: T) => string | null | undefined;
+  /** Content shown in place under a row (inline edit form, delete confirmation); null/undefined = nothing. */
+  expandedRow?: (row: T) => ReactNode;
 }
 
 export function DataTable<T>({
@@ -46,6 +48,7 @@ export function DataTable<T>({
   rowKey,
   testId = 'data',
   rowCode,
+  expandedRow,
   sort,
   onSortChange,
   loading,
@@ -118,25 +121,45 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={rowKey(row)}
-              className="border-b border-border last:border-0 hover:bg-background/60"
-              data-testid={`${testId}-row`}
-              data-entity-id={rowKey(row)}
-              data-entity-code={rowCode?.(row) ?? undefined}
-            >
-              {columns.map((c) => (
-                <td
-                  key={c.key}
-                  className={cn('px-4 py-3 align-middle', c.className)}
-                  data-testid={`${testId}-row-${c.key}-cell`}
+          {rows.map((row) => {
+            const below = expandedRow?.(row) ?? null;
+            const expanded = below !== null && below !== false;
+            return (
+              <Fragment key={rowKey(row)}>
+                <tr
+                  className={cn(
+                    'border-b border-border last:border-0 hover:bg-background/60',
+                    expanded && 'border-b-0 bg-background/60',
+                  )}
+                  data-testid={`${testId}-row`}
+                  data-entity-id={rowKey(row)}
+                  data-entity-code={rowCode?.(row) ?? undefined}
+                  data-expanded={expanded ? 'true' : undefined}
                 >
-                  {c.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+                  {columns.map((c) => (
+                    <td
+                      key={c.key}
+                      className={cn('px-4 py-3 align-middle', c.className)}
+                      data-testid={`${testId}-row-${c.key}-cell`}
+                    >
+                      {c.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+                {expanded && (
+                  <tr
+                    className="border-b border-border bg-background/60 last:border-0"
+                    data-testid={`${testId}-row-expanded`}
+                    data-entity-id={rowKey(row)}
+                  >
+                    <td colSpan={columns.length} className="px-4 pb-4 pt-1">
+                      {below}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

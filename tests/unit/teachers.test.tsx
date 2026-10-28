@@ -118,7 +118,7 @@ describe('Teachers page', () => {
     renderRoute('/org/teachers');
     await screen.findByText('Ravi Kumar');
     await userEvent.click(screen.getByRole('button', { name: 'Add teacher' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a teacher' });
+    const dialog = await screen.findByRole('region', { name: 'Add a teacher' });
     expect(within(dialog).getByLabelText(/Send an invitation to sign in/)).toBeChecked();
     await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Priya Shah');
     await userEvent.type(within(dialog).getByLabelText(/Employee code/), 'EMP-77');
@@ -142,7 +142,7 @@ describe('Teachers page', () => {
     renderRoute('/org/teachers');
     await screen.findByText('Ravi Kumar');
     await userEvent.click(screen.getByRole('button', { name: 'Add teacher' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a teacher' });
+    const dialog = await screen.findByRole('region', { name: 'Add a teacher' });
     await userEvent.type(within(dialog).getByLabelText(/Full name/), 'No Mail');
     await userEvent.type(within(dialog).getByLabelText(/Employee code/), 'EMP-1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add teacher' }));
@@ -156,7 +156,7 @@ describe('Teachers page', () => {
     await screen.findByText('Ravi Kumar');
     await actions('Ravi Kumar');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Edit Ravi Kumar' });
+    const dialog = await screen.findByRole('region', { name: 'Edit Ravi Kumar' });
     expect(within(dialog).getByLabelText(/Email/)).toBeDisabled();
     await userEvent.selectOptions(within(dialog).getByLabelText(/Status/), 'inactive');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
@@ -176,7 +176,7 @@ describe('Teachers page', () => {
     await screen.findByText('Ravi Kumar');
     await actions('Ravi Kumar');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Assign scope' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Scope of Ravi Kumar' });
+    const drawer = await screen.findByRole('region', { name: 'Scope of Ravi Kumar' });
     expect(await within(drawer).findByLabelText('Electrical Machines (S1)')).toBeChecked();
     expect(within(drawer).getByLabelText('Power Systems (S2)')).not.toBeChecked();
     expect(within(drawer).getByRole('note')).toHaveTextContent('1 assigned item(s) were deleted');
@@ -196,7 +196,7 @@ describe('Teachers page', () => {
     await screen.findByText('Meera Nair');
     await actions('Meera Nair');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Remove this teacher?' });
+    const dialog = await screen.findByRole('group', { name: 'Remove this teacher?' });
     expect(dialog).toHaveTextContent('loses access to your organization');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove teacher' }));
     await waitFor(() => expect(called('DELETE /api/v1/teachers/t2')).toHaveLength(1));

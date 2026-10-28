@@ -84,7 +84,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const openNav = async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Toggle navigation' }));
-  return within(await screen.findByRole('dialog', { name: 'Navigation' }));
+  return within(await screen.findByTestId('nav-mobile-menu'));
 };
 const rowFor = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
@@ -246,7 +246,7 @@ describe('Users page', () => {
       within(rowFor('Kiran Rao')).getByRole('button', { name: 'Actions for Kiran Rao' }),
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Change role?' });
+    const dialog = await screen.findByRole('group', { name: 'Change role?' });
     expect(dialog).toHaveTextContent('Their access changes immediately');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Change role' }));
     await waitFor(() =>
@@ -268,7 +268,9 @@ describe('Users page', () => {
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+      within(await screen.findByRole('group', { name: 'Change role?' })).getByRole('button', {
+        name: 'Cancel',
+      }),
     );
     expect(calls.some((c) => c.key.startsWith('PUT'))).toBe(false);
   });
@@ -286,7 +288,9 @@ describe('Users page', () => {
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Change role' }),
+      within(await screen.findByRole('group', { name: 'Change role?' })).getByRole('button', {
+        name: 'Change role',
+      }),
     );
     expect(await screen.findByText('Could not change the role')).toBeInTheDocument();
     expect(screen.getByText('Only the organization owner can manage admins.')).toBeInTheDocument();
@@ -300,7 +304,7 @@ describe('Users page', () => {
       within(rowFor('Meera Nair')).getByRole('button', { name: 'Actions for Meera Nair' }),
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Suspend' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Suspend this user?' });
+    const dialog = await screen.findByRole('group', { name: 'Suspend this user?' });
     expect(dialog).toHaveTextContent('lose access to this organization right away');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Suspend' }));
     await waitFor(() =>
@@ -372,7 +376,7 @@ describe('Invite admin (owner only)', () => {
     setup('OWNER');
     renderRoute('/org/users');
     await userEvent.click(await screen.findByRole('button', { name: 'Invite admin' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Invite an admin' });
+    const dialog = await screen.findByRole('region', { name: 'Invite an admin' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
     expect(await within(dialog).findByText('Enter at least 2 characters')).toBeInTheDocument();
     expect(within(dialog).getByText('Enter an email address')).toBeInTheDocument();
@@ -388,7 +392,7 @@ describe('Invite admin (owner only)', () => {
     );
     expect(await screen.findByText('Admin added')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Invite an admin' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('region', { name: 'Invite an admin' })).not.toBeInTheDocument(),
     );
   });
 
@@ -400,12 +404,12 @@ describe('Invite admin (owner only)', () => {
     });
     renderRoute('/org/users');
     await userEvent.click(await screen.findByRole('button', { name: 'Invite admin' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Invite an admin' });
+    const dialog = await screen.findByRole('region', { name: 'Invite an admin' });
     await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Priya Shah');
     await userEvent.type(within(dialog).getByLabelText(/Email/), 'priya@college.test');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
     expect(await screen.findByText('Could not add the admin')).toBeInTheDocument();
-    expect(screen.getByRole('dialog', { name: 'Invite an admin' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Invite an admin' })).toBeInTheDocument();
   });
 });
 

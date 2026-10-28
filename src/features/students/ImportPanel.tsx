@@ -1,11 +1,11 @@
 // PURPOSE: Import students from a CSV file: read the file, check it (dry run, nothing saved), then import.
 // WHY: Colleges onboard hundreds of students at once (guide 2.2 step 6). Problems are reported per line so the file can be
 //      fixed and uploaded again; rows that already exist are refused, never duplicated.
-// DEPENDS ON: features/students/csv.ts + hooks.ts, services/studentService.ts, components/modals/Dialog.tsx.
+// DEPENDS ON: features/students/csv.ts + hooks.ts, services/studentService.ts, components/inline/Inline.tsx (shown in the page, above the list).
 
 import { useState } from 'react';
 import { useToast } from '@/components/feedback/Toast';
-import { Modal } from '@/components/modals/Dialog';
+import { InlinePanel } from '@/components/inline/Inline';
 import { Button } from '@/components/ui/Button';
 import { errorText } from '@/features/academic/ui';
 import { studentService } from '@/services/studentService';
@@ -48,7 +48,15 @@ function Problems({ result }: { result: ImportResult }) {
   );
 }
 
-export function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ImportPanel({
+  open,
+  onClose,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  className?: string;
+}) {
   const { toast } = useToast();
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -95,14 +103,15 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
 
   const ready = check && !check.dryRun ? 0 : (check?.created ?? 0);
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title="Import students"
-      size="lg"
+      testId="student-import"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="student-import-cancel-btn">
             {check && !check.dryRun ? 'Done' : 'Cancel'}
           </Button>
           {!check || !check.dryRun ? (
@@ -110,11 +119,18 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
               disabled={!rows.length || Boolean(fileError) || Boolean(check && !check.dryRun)}
               loading={run.isPending}
               onClick={doCheck}
+              data-testid="student-import-check-btn"
             >
               Check file
             </Button>
           ) : (
-            <Button disabled={ready === 0} loading={run.isPending} onClick={doImport}>
+            <Button
+              disabled={ready === 0}
+              loading={run.isPending}
+              onClick={doImport}
+              data-testid="student-import-submit-btn"
+              data-count={ready}
+            >
               Import {ready} student{ready === 1 ? '' : 's'}
             </Button>
           )}
@@ -128,6 +144,7 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
           <a
             className="font-medium text-primary underline"
             download="students-template.csv"
+            data-testid="student-import-template-link"
             href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE_CSV)}`}
           >
             Download the template
@@ -142,12 +159,14 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
             id="students-file"
             type="file"
             accept=".csv,text/csv"
+            name="file"
+            data-testid="student-import-file-input"
             className="text-sm"
             onChange={(e) => void onFile(e.target.files?.[0])}
           />
         </div>
         {fileError && (
-          <p role="alert" className="text-sm text-error">
+          <p role="alert" className="text-sm text-error" data-testid="student-import-file-error">
             {fileError}
           </p>
         )}
@@ -158,7 +177,7 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
           </p>
         )}
         {check && (
-          <div role="status" className="grid gap-3">
+          <div role="status" className="grid gap-3" data-testid="student-import-result">
             <p className="text-sm text-text">
               {check.dryRun ? (
                 <>
@@ -182,6 +201,6 @@ export function ImportModal({ open, onClose }: { open: boolean; onClose: () => v
           </div>
         )}
       </div>
-    </Modal>
+    </InlinePanel>
   );
 }

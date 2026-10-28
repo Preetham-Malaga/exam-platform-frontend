@@ -9,7 +9,7 @@ import { ToastProvider, useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Select } from '@/components/forms/Form';
 import { AppShell } from '@/components/layout/AppShell';
 import { Breadcrumb, PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination } from '@/components/tables/DataTable';
 import { SearchInput } from '@/components/tables/FilterBar';
 import { Avatar } from '@/components/ui/Avatar';
@@ -64,52 +64,52 @@ describe('form controls', () => {
   });
 });
 
-describe('Modal / ConfirmDialog accessibility', () => {
-  it('is a labelled modal dialog, closes on Escape and on overlay click, and returns focus', async () => {
+describe('InlinePanel / InlineConfirm (no pop-ups)', () => {
+  it('is a labelled region in the page: focus moves in, Escape and the close button close it', async () => {
     const onClose = vi.fn();
     const { rerender } = render(
       <>
         <button>opener</button>
-        <Modal open onClose={onClose} title="Edit student">
+        <InlinePanel open onClose={onClose} title="Edit student" testId="student-form">
           <Input label="Name" />
-        </Modal>
+        </InlinePanel>
       </>,
     );
-    const dialog = screen.getByRole('dialog', { name: 'Edit student' });
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toContainElement(document.activeElement as HTMLElement); // focus moved inside
+    const panel = screen.getByRole('region', { name: 'Edit student' });
+    expect(panel).not.toHaveAttribute('aria-modal');
+    expect(screen.getByLabelText('Name')).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTestId('dialog-overlay'));
+    fireEvent.click(screen.getByTestId('student-form-close-btn'));
     expect(onClose).toHaveBeenCalledTimes(2);
     rerender(
       <>
         <button>opener</button>
-        <Modal open={false} onClose={onClose} title="Edit student">
+        <InlinePanel open={false} onClose={onClose} title="Edit student">
           x
-        </Modal>
+        </InlinePanel>
       </>,
     );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Edit student' })).not.toBeInTheDocument();
   });
-  it('traps Tab focus inside the dialog', async () => {
+  it('does not trap focus: Tab can leave the panel to the rest of the page', async () => {
     render(
-      <Modal open onClose={() => undefined} title="Trap">
-        <Input label="A" />
-        <Input label="B" />
-      </Modal>,
+      <>
+        <InlinePanel open onClose={() => undefined} title="Inline">
+          <Input label="A" />
+        </InlinePanel>
+        <button>after</button>
+      </>,
     );
-    const dialog = screen.getByRole('dialog');
-    for (let i = 0; i < 6; i++) {
-      await userEvent.tab();
-      expect(dialog).toContainElement(document.activeElement as HTMLElement);
-    }
+    expect(screen.getByLabelText('A')).toHaveFocus();
+    await userEvent.tab(); // the close button sits before A, so the next stop is outside the panel
+    expect(screen.getByRole('button', { name: 'after' })).toHaveFocus();
   });
-  it('ConfirmDialog calls the right callback and focuses Cancel first', async () => {
+  it('InlineConfirm calls the right callback, focuses Cancel first and cancels on Escape', async () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
     render(
-      <ConfirmDialog
+      <InlineConfirm
         open
         title="Delete?"
         message="Sure?"
@@ -118,22 +118,24 @@ describe('Modal / ConfirmDialog accessibility', () => {
         onCancel={onCancel}
       />,
     );
+    expect(screen.getByRole('group', { name: 'Delete?' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(onCancel).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onConfirm).toHaveBeenCalled();
-    expect(onCancel).not.toHaveBeenCalled();
   });
 });
 
-describe('Modal focus stability', () => {
+describe('InlinePanel focus stability', () => {
   it('does not steal focus when the parent re-renders (new onClose function) while the user is typing', async () => {
     function Host() {
       const [n, setN] = useState(0);
       return (
-        <Modal open onClose={() => setN(n)} title="Form">
+        <InlinePanel open onClose={() => setN(n)} title="Form">
           <Input label="First" data-autofocus onChange={() => setN((v) => v + 1)} />
           <Input label="Second" onChange={() => setN((v) => v + 1)} />
-        </Modal>
+        </InlinePanel>
       );
     }
     render(<Host />);
@@ -456,7 +458,7 @@ describe('layout', () => {
     expect(screen.getByText('Dev User')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Toggle navigation' })).toBeInTheDocument();
   });
-  it('on small screens the menu button opens a navigation drawer', async () => {
+  it('on small screens the menu button opens the menu in the page, under the topbar', async () => {
     render(
       <MemoryRouter>
         <AppShell sections={orgNavigation.slice(0, 2)}>
@@ -464,9 +466,12 @@ describe('layout', () => {
         </AppShell>
       </MemoryRouter>,
     );
+    expect(screen.queryByTestId('nav-mobile-menu')).not.toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Toggle navigation' });
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+    const drawer = await screen.findByTestId('nav-mobile-menu');
     expect(within(drawer).getByRole('link', { name: /Dashboard/ })).toBeInTheDocument();
     await waitFor(() =>
       expect(

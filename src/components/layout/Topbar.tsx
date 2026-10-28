@@ -18,11 +18,14 @@ export function Topbar({
   user,
   menuItems = [],
   actions,
+  menuExpanded,
 }: {
   onMenuClick: () => void;
   user?: TopbarUser | undefined;
   menuItems?: MenuItem[];
   actions?: ReactNode;
+  /** Whether the navigation (sidebar or mobile menu) is showing. */
+  menuExpanded?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between gap-3 border-b border-border bg-card px-4">
@@ -30,7 +33,9 @@ export function Topbar({
         variant="ghost"
         size="sm"
         aria-label="Toggle navigation"
+        aria-expanded={menuExpanded}
         data-testid="topbar-nav-toggle-btn"
+        data-expanded={menuExpanded}
         onClick={onMenuClick}
       >
         <Icon name="menu" size={20} />

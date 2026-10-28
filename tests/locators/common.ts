@@ -37,6 +37,7 @@ export const table = (prefix: string) => ({
   table: tid(`${prefix}-table`),
   row: tid(`${prefix}-row`),
   cell: (column: string) => tid(`${prefix}-row-${column}-cell`),
+  rowExpanded: tid(`${prefix}-row-expanded`),
   sortBtn: (column: string) => tid(`${prefix}-sort-${column}-btn`),
   loader: tid(`${prefix}-loader`),
   empty: tid(`${prefix}-empty`),
@@ -44,10 +45,15 @@ export const table = (prefix: string) => ({
   retryBtn: tid(`${prefix}-error-retry-btn`),
 });
 
-/** ConfirmDialog with testId="<prefix>". */
-export const confirmDialog = (prefix = 'confirm') => ({
-  root: tid(`${prefix}-dialog`),
-  closeBtn: tid(`${prefix}-dialog-close-btn`),
+/** InlineConfirm with testId="<prefix>" (asked in place, under the row or next to the button). */
+export const inlineConfirm = (prefix = 'delete') => ({
+  root: tid(`${prefix}-confirm`),
   cancelBtn: tid(`${prefix}-cancel-btn`),
   confirmBtn: tid(`${prefix}-confirm-btn`),
+});
+
+/** InlinePanel with testId="<id>" (a form or detail shown in the page). */
+export const inlinePanel = (id: string) => ({
+  root: tid(id),
+  closeBtn: tid(`${id}-close-btn`),
 });
