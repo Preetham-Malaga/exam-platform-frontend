@@ -73,10 +73,13 @@ function OpenPanel({
       aria-labelledby={titleId}
       onKeyDown={onKeyDown}
       data-testid={testId}
-      className={cn('rounded-card border border-secondary bg-card shadow-sm', className)}
+      className={cn(
+        'rounded-tile border-2 border-focus bg-surface shadow-[0_12px_30px_color-mix(in_srgb,var(--focus)_16%,transparent)]',
+        className,
+      )}
     >
-      <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
-        <h2 id={titleId} className="text-base font-semibold text-text">
+      <header className="flex items-center justify-between gap-3 px-[18px] pt-[18px]">
+        <h2 id={titleId} className="font-extrabold">
           {title}
         </h2>
         <Button
@@ -89,11 +92,9 @@ function OpenPanel({
           <Icon name="close" />
         </Button>
       </header>
-      <div className="p-5">{children}</div>
+      <div className="p-[18px]">{children}</div>
       {footer && (
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3">
-          {footer}
-        </footer>
+        <footer className="flex flex-wrap justify-end gap-2 px-[18px] pb-[18px]">{footer}</footer>
       )}
     </section>
   );
@@ -147,20 +148,19 @@ function OpenConfirm({
       data-testid={`${testId}-confirm`}
       data-state={tone}
       className={cn(
-        'flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4',
-        tone === 'danger' ? 'border-error/40 bg-error/5' : 'border-secondary bg-secondary/10',
+        'flex flex-wrap items-center justify-between gap-2.5 rounded-row px-3.5 py-2.5 font-bold',
+        tone === 'danger' ? 'bg-danger-bg text-danger' : 'bg-butter text-butter-ink',
         className,
       )}
     >
       <div className="min-w-0 flex-1">
-        <p id={titleId} className="text-sm font-semibold text-text">
-          {title}
-        </p>
-        <div className="mt-0.5 text-sm text-muted">{message}</div>
+        <p id={titleId}>{title}</p>
+        <div className="mt-0.5 text-[13px] font-medium opacity-90">{message}</div>
       </div>
       <div className="flex gap-2">
         <Button
           variant="outline"
+          size="sm"
           onClick={onCancel}
           data-cancel
           data-testid={`${testId}-cancel-btn`}
@@ -169,6 +169,7 @@ function OpenConfirm({
         </Button>
         <Button
           variant={tone === 'danger' ? 'danger' : 'primary'}
+          size="sm"
           loading={Boolean(loading)}
           onClick={onConfirm}
           data-testid={`${testId}-confirm-btn`}

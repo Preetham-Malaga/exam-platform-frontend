@@ -11,75 +11,75 @@ Tests: Vitest + Testing Library; Playwright e2e with page objects (`tests/e2e`).
 
 ## Decisions taken
 
-| Topic | Decision | Why |
-|---|---|---|
-| Add / edit | Each opens its own route (breadcrumb + Back), as the brief says. The inline panels built on 28-10 are removed. | Brief §1 |
-| Deletes, publish, submit | Confirm inline (`InlineConfirm`), never a dialog. | Brief §1, already in place |
-| "Syllabus" / "Academic Structure" | Renamed **Courses** everywhere. | Brief §1 |
-| Batches | A new `batches` table (course, academic year, section …) and `students.batch_id`. Academic units stay in the database untouched until Batches are live; then the units are no longer shown. Backup before the migration. | Prototype `SPEC.batch`; no destructive change |
-| Org approval | New organization status `pending_approval` between e-mail verification and `active`; the platform admin approves. | Brief §3 |
-| Theme, date and time formats | Stored in `organization_settings.branding` (jsonb, exists) and applied as CSS variables plus `formatDate` / `formatTime`. | No new table needed |
-| Locators | Copied from the prototype's `data-testid`s. Where an existing id differs, the prototype wins and the change is logged in `docs/locators.md`. | Brief §2 |
+| Topic                             | Decision                                                                                                                                                                                                                 | Why                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Add / edit                        | Each opens its own route (breadcrumb + Back), as the brief says. The inline panels built on 28-10 are removed.                                                                                                           | Brief §1                                      |
+| Deletes, publish, submit          | Confirm inline (`InlineConfirm`), never a dialog.                                                                                                                                                                        | Brief §1, already in place                    |
+| "Syllabus" / "Academic Structure" | Renamed **Courses** everywhere.                                                                                                                                                                                          | Brief §1                                      |
+| Batches                           | A new `batches` table (course, academic year, section …) and `students.batch_id`. Academic units stay in the database untouched until Batches are live; then the units are no longer shown. Backup before the migration. | Prototype `SPEC.batch`; no destructive change |
+| Org approval                      | New organization status `pending_approval` between e-mail verification and `active`; the platform admin approves.                                                                                                        | Brief §3                                      |
+| Theme, date and time formats      | Stored in `organization_settings.branding` (jsonb, exists) and applied as CSS variables plus `formatDate` / `formatTime`.                                                                                                | No new table needed                           |
+| Locators                          | Copied from the prototype's `data-testid`s. Where an existing id differs, the prototype wins and the change is logged in `docs/locators.md`.                                                                             | Brief §2                                      |
 
 ## Screen → route → code → API
 
-| Prototype screen (function) | Route | Existing code that changes | API | Backend gap |
-|---|---|---|---|---|
-| Login (`vLogin`) | `/login` | `pages/auth/LoginPage` (remove Google) | Supabase Auth | — |
-| Sign up (`vSignupFull`, `SPEC.signup`) | `/register` | `pages/auth/RegisterPage` | `POST /auth/register` | new fields (city, state, mobile, heard); fix "Unable to create organization" |
-| Pending approval (`vPending`) | `/register/pending` | new | — | `pending_approval` status + platform approve endpoint |
-| Forgot password (`vForgot`) | `/forgot-password` | restyle | Supabase | — |
-| Shell + grouped menu (`shell`, `NAV`) | all | `AppShell`, `Sidebar`, `utils/navigation` | — | — |
-| Owner dashboard (`vDashOwner`) | `/org/dashboard` | `pages/organization/OrgDashboardPage` | `GET /organizations/current/dashboard` | extend to the one-call summary (filters: range, batch, course, exam) |
-| Teacher dashboard | `/teacher/dashboard` | same view, scoped | same | scope by teacher |
-| Courses list (`vSyllabus`) | `/org/courses` | replaces Academic Structure, Courses, Subjects, Topics pages | courses / subjects / topics | — |
-| Course form (`SPEC.course`) | `/org/courses/new`, `/org/courses/:id/edit` | new | `POST/PATCH /courses` | fields: type, department, medium, duration, terms, dates, seats, fee |
-| Subject form (`SPEC.subject`) | `/org/courses/:courseId/subjects/new`, `…/subjects/:id/edit` | new | `/subjects` | fields: type, term, credits, marks, hours, teachers, order |
-| Topic form (`SPEC.topic`) | `/org/subjects/:subjectId/topics/new`, `…/topics/:id/edit` | new | `/topics` | fields: code, parent topic, objectives, hours, difficulty |
-| Question bank (`vQBDrill`) | `/org/questions` | `pages/questions/QuestionBankPage` | `/questions` | bulk publish/draft/delete |
-| Question form (`SPEC.question`) | `/org/questions/new`, `/org/questions/:id/edit` | `features/assessment/QuestionEditor` becomes a page | `/questions` | question types beyond MCQ/TF, Bloom, CO, tags, source |
-| Exams list (`vExams`) | `/org/exams` (tabs All/Draft/Published/Closed) | `pages/exams/ExamsPage`; Published Exams and Assignments pages removed | `/exams` | "closed" state, duplicate |
-| Exam form (`SPEC.exam`) | `/org/exams/new` | `features/assessment/ExamForm` becomes a page | `/exams` | fields: type, subjects, term, times, result release, security, notifications |
-| Exam page (`vExam`) | `/org/exams/:id` (Details · Questions · Assign · Results, checklist, Publish) | `pages/exams/ExamDetailPage` | exam questions / assignments / publish | assign to batches |
-| Students (`vStudents`, `SPEC.student`) | `/org/students`, `/org/students/new`, `…/:id/edit` | `pages/students/StudentsPage` | `/students` | batch, guardian, admission no., login method |
-| Teachers (`vTeachers`, `SPEC.teacher`) | `/org/teachers`, `…/new` | `pages/teachers/TeachersPage` | `/teachers` | professional fields, subjects/batches |
-| Batches (`vBatches`, `SPEC.batch`) | `/org/batches`, `…/new` | new | — | **new** `batches` module |
-| Admins (`vAdmins`, `SPEC.admin`) | `/org/admins`, `…/new` | `pages/organization/UsersPage` (admins view) | `/users/admins` | mobile, 2-step flag |
-| Live classes (`vLive`, `SPEC.live`) | `/org/live`, `…/new` | new | — | **new** `live_classes` module |
-| Recorded classes (`vRecorded`, `SPEC.recorded`) | `/org/recorded`, `…/new` | new | — | **new** `recordings` module (+ file storage) |
-| Materials (`vMaterials`, `SPEC.material`) | `/org/materials`, `…/new` | new | — | **new** `materials` module (+ file storage) |
-| Results (`vResults`) | `/org/results` | `pages/insights/ResultsPage` | `/results` | CSV/PDF export |
-| Leaderboard (`vLeaderboard`) | `/org/leaderboard` | `pages/insights/LeaderboardPage` | `/leaderboards` | — |
-| Reports (`vReports`) | `/org/reports` | `pages/insights/ReportsPage` | `/reports/:type` | — |
-| Organization profile (`vOrg`, `SPEC.organization`) | `/org/profile` (Details · Branding · Date & time) | `pages/organization/*Profile*` | `/organizations/current` | address, GSTIN, academic settings, branding, formats |
-| Roles & permissions (`vRoles`) | `/org/settings/permissions` | existing | `/roles` | — |
-| Notifications (`vAlerts`) | `/org/notifications` | existing | notifications | preferences |
-| Student home (`vHome`) | `/student/dashboard` | `pages/student/StudentDashboardPage` | student endpoints | — |
-| My exams (`vMyExams`) | `/student/exams` (Available · Upcoming · Completed) | `pages/student/StudentExamsPage` | `/student/exams` | — |
-| Exam player (`vTake`) | `/student/attempts/:id` | `pages/student/ExamRunnerPage` | attempts | — |
-| My results | `/student/results` | existing | `/student/results` | — |
+| Prototype screen (function)                        | Route                                                                         | Existing code that changes                                             | API                                    | Backend gap                                                                  |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| Login (`vLogin`)                                   | `/login`                                                                      | `pages/auth/LoginPage` (remove Google)                                 | Supabase Auth                          | —                                                                            |
+| Sign up (`vSignupFull`, `SPEC.signup`)             | `/register`                                                                   | `pages/auth/RegisterPage`                                              | `POST /auth/register`                  | new fields (city, state, mobile, heard); fix "Unable to create organization" |
+| Pending approval (`vPending`)                      | `/register/pending`                                                           | new                                                                    | —                                      | `pending_approval` status + platform approve endpoint                        |
+| Forgot password (`vForgot`)                        | `/forgot-password`                                                            | restyle                                                                | Supabase                               | —                                                                            |
+| Shell + grouped menu (`shell`, `NAV`)              | all                                                                           | `AppShell`, `Sidebar`, `utils/navigation`                              | —                                      | —                                                                            |
+| Owner dashboard (`vDashOwner`)                     | `/org/dashboard`                                                              | `pages/organization/OrgDashboardPage`                                  | `GET /organizations/current/dashboard` | extend to the one-call summary (filters: range, batch, course, exam)         |
+| Teacher dashboard                                  | `/teacher/dashboard`                                                          | same view, scoped                                                      | same                                   | scope by teacher                                                             |
+| Courses list (`vSyllabus`)                         | `/org/courses`                                                                | replaces Academic Structure, Courses, Subjects, Topics pages           | courses / subjects / topics            | —                                                                            |
+| Course form (`SPEC.course`)                        | `/org/courses/new`, `/org/courses/:id/edit`                                   | new                                                                    | `POST/PATCH /courses`                  | fields: type, department, medium, duration, terms, dates, seats, fee         |
+| Subject form (`SPEC.subject`)                      | `/org/courses/:courseId/subjects/new`, `…/subjects/:id/edit`                  | new                                                                    | `/subjects`                            | fields: type, term, credits, marks, hours, teachers, order                   |
+| Topic form (`SPEC.topic`)                          | `/org/subjects/:subjectId/topics/new`, `…/topics/:id/edit`                    | new                                                                    | `/topics`                              | fields: code, parent topic, objectives, hours, difficulty                    |
+| Question bank (`vQBDrill`)                         | `/org/questions`                                                              | `pages/questions/QuestionBankPage`                                     | `/questions`                           | bulk publish/draft/delete                                                    |
+| Question form (`SPEC.question`)                    | `/org/questions/new`, `/org/questions/:id/edit`                               | `features/assessment/QuestionEditor` becomes a page                    | `/questions`                           | question types beyond MCQ/TF, Bloom, CO, tags, source                        |
+| Exams list (`vExams`)                              | `/org/exams` (tabs All/Draft/Published/Closed)                                | `pages/exams/ExamsPage`; Published Exams and Assignments pages removed | `/exams`                               | "closed" state, duplicate                                                    |
+| Exam form (`SPEC.exam`)                            | `/org/exams/new`                                                              | `features/assessment/ExamForm` becomes a page                          | `/exams`                               | fields: type, subjects, term, times, result release, security, notifications |
+| Exam page (`vExam`)                                | `/org/exams/:id` (Details · Questions · Assign · Results, checklist, Publish) | `pages/exams/ExamDetailPage`                                           | exam questions / assignments / publish | assign to batches                                                            |
+| Students (`vStudents`, `SPEC.student`)             | `/org/students`, `/org/students/new`, `…/:id/edit`                            | `pages/students/StudentsPage`                                          | `/students`                            | batch, guardian, admission no., login method                                 |
+| Teachers (`vTeachers`, `SPEC.teacher`)             | `/org/teachers`, `…/new`                                                      | `pages/teachers/TeachersPage`                                          | `/teachers`                            | professional fields, subjects/batches                                        |
+| Batches (`vBatches`, `SPEC.batch`)                 | `/org/batches`, `…/new`                                                       | new                                                                    | —                                      | **new** `batches` module                                                     |
+| Admins (`vAdmins`, `SPEC.admin`)                   | `/org/admins`, `…/new`                                                        | `pages/organization/UsersPage` (admins view)                           | `/users/admins`                        | mobile, 2-step flag                                                          |
+| Live classes (`vLive`, `SPEC.live`)                | `/org/live`, `…/new`                                                          | new                                                                    | —                                      | **new** `live_classes` module                                                |
+| Recorded classes (`vRecorded`, `SPEC.recorded`)    | `/org/recorded`, `…/new`                                                      | new                                                                    | —                                      | **new** `recordings` module (+ file storage)                                 |
+| Materials (`vMaterials`, `SPEC.material`)          | `/org/materials`, `…/new`                                                     | new                                                                    | —                                      | **new** `materials` module (+ file storage)                                  |
+| Results (`vResults`)                               | `/org/results`                                                                | `pages/insights/ResultsPage`                                           | `/results`                             | CSV/PDF export                                                               |
+| Leaderboard (`vLeaderboard`)                       | `/org/leaderboard`                                                            | `pages/insights/LeaderboardPage`                                       | `/leaderboards`                        | —                                                                            |
+| Reports (`vReports`)                               | `/org/reports`                                                                | `pages/insights/ReportsPage`                                           | `/reports/:type`                       | —                                                                            |
+| Organization profile (`vOrg`, `SPEC.organization`) | `/org/profile` (Details · Branding · Date & time)                             | `pages/organization/*Profile*`                                         | `/organizations/current`               | address, GSTIN, academic settings, branding, formats                         |
+| Roles & permissions (`vRoles`)                     | `/org/settings/permissions`                                                   | existing                                                               | `/roles`                               | —                                                                            |
+| Notifications (`vAlerts`)                          | `/org/notifications`                                                          | existing                                                               | notifications                          | preferences                                                                  |
+| Student home (`vHome`)                             | `/student/dashboard`                                                          | `pages/student/StudentDashboardPage`                                   | student endpoints                      | —                                                                            |
+| My exams (`vMyExams`)                              | `/student/exams` (Available · Upcoming · Completed)                           | `pages/student/StudentExamsPage`                                       | `/student/exams`                       | —                                                                            |
+| Exam player (`vTake`)                              | `/student/attempts/:id`                                                       | `pages/student/ExamRunnerPage`                                         | attempts                               | —                                                                            |
+| My results                                         | `/student/results`                                                            | existing                                                               | `/student/results`                     | —                                                                            |
 
 ## Order of work (brief §10)
 
-| # | Step | Status |
-|---|---|---|
-| 1 | Theme tokens, layout shell, grouped menu | ◐ |
-| 2 | Auth: remove Google, fix organization creation, roles and invites, pending approval | ☐ |
-| 3 | Courses (list + course/subject/topic screens) | ☐ |
-| 4 | Question Bank | ☐ |
-| 5 | Exams | ☐ |
-| 6 | Dashboard + summary endpoint | ☐ |
-| 7 | People (students, teachers, batches, admins) | ☐ |
-| 8 | Learning (live, recorded, materials) | ☐ |
-| 9 | Results, leaderboard, reports | ☐ |
-| 10 | Settings, theme, date format | ☐ |
-| 11 | Performance pass | ☐ |
-| 12 | Locator audit (`docs/LOCATORS.md` vs the prototype) | ☐ |
+| #   | Step                                                                                | Status |
+| --- | ----------------------------------------------------------------------------------- | ------ |
+| 1   | Theme tokens, layout shell, grouped menu                                            | ☑      |
+| 2   | Auth: remove Google, fix organization creation, roles and invites, pending approval | ☐      |
+| 3   | Courses (list + course/subject/topic screens)                                       | ☐      |
+| 4   | Question Bank                                                                       | ☐      |
+| 5   | Exams                                                                               | ☐      |
+| 6   | Dashboard + summary endpoint                                                        | ☐      |
+| 7   | People (students, teachers, batches, admins)                                        | ☐      |
+| 8   | Learning (live, recorded, materials)                                                | ☐      |
+| 9   | Results, leaderboard, reports                                                       | ☐      |
+| 10  | Settings, theme, date format                                                        | ☐      |
+| 11  | Performance pass                                                                    | ☐      |
+| 12  | Locator audit (`docs/LOCATORS.md` vs the prototype)                                 | ☐      |
 
 ## Backend changes log
 
 Each new field or endpoint is added with a reversible migration and listed here with its step.
 
-| Step | Change | Migration |
-|---|---|---|
-| — | — | — |
+| Step | Change                                                                                                                                                 | Migration                                          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| 1    | Server no longer crashes when the database connection drops; DB connections kept 10 min with keep-alive and 30 s query limits; login check cached 30 s | none (backend branch `fix/db-timeouts-auth-cache`) |

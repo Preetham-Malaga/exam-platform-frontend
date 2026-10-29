@@ -83,8 +83,7 @@ function setup(role: keyof typeof PERMS, me: Record<string, unknown> = {}) {
 afterEach(() => vi.unstubAllGlobals());
 
 const openNav = async () => {
-  await userEvent.click(await screen.findByRole('button', { name: 'Toggle navigation' }));
-  const menu = await screen.findByTestId('nav-mobile-menu');
+  const menu = await screen.findByTestId('nav');
   // Groups start closed: open them all so every link the role may use is listed.
   for (const b of within(menu).queryAllByRole('button', { expanded: false }))
     await userEvent.click(b);
@@ -93,12 +92,12 @@ const openNav = async () => {
 const rowFor = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('the menu follows the role (UX only)', () => {
-  it('owner sees Users and Roles & Permissions', async () => {
+  it('owner sees Admins and Roles & Permissions', async () => {
     setup('OWNER');
     renderRoute('/app');
     const nav = await openNav();
     for (const l of [
-      'Users',
+      'Admins',
       'Roles & Permissions',
       'Organization Profile',
       'Courses',
@@ -106,10 +105,10 @@ describe('the menu follows the role (UX only)', () => {
     ])
       expect(nav.getByRole('link', { name: new RegExp(l) }), l).toBeInTheDocument();
   });
-  it('admin sees Users too', async () => {
+  it('admin sees Admins too', async () => {
     setup('ADMIN');
     renderRoute('/app');
-    expect((await openNav()).getByRole('link', { name: /Users/ })).toBeInTheDocument();
+    expect((await openNav()).getByRole('link', { name: /Admins/ })).toBeInTheDocument();
   });
   it('teacher sees only teacher items', async () => {
     setup('TEACHER');
@@ -129,9 +128,9 @@ describe('the menu follows the role (UX only)', () => {
     renderRoute('/app');
     const nav = await openNav();
     expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Dashboard',
+      'Home',
       'My Exams',
-      'Results',
+      'My Results',
       'Leaderboard',
     ]);
   });

@@ -50,7 +50,7 @@ export function SearchInput({
         value={text}
         placeholder={placeholder}
         onChange={(e) => setText(e.target.value)}
-        className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/40"
+        className="h-[46px] w-full rounded-input border-[1.5px] border-border bg-surface-2 pl-9 pr-3 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-focus"
       />
     </div>
   );
@@ -66,7 +66,7 @@ export function FilterBar({
   canClear?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
+    <div className="flex flex-wrap items-end gap-2.5 px-[22px] pb-2 pt-[22px]">
       {children}
       {onClear && canClear && (
         <Button variant="ghost" size="sm" onClick={onClear} data-testid="filter-clear-btn">

@@ -72,7 +72,7 @@ export function Dropdown({
         data-testid={`${prefix}-menu-btn`}
         data-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="rounded-lg p-1.5 text-muted hover:bg-background hover:text-text"
+        className="grid h-9 w-9 place-items-center rounded-xl text-muted hover:bg-bg hover:text-ink"
       >
         {trigger}
       </button>
@@ -84,7 +84,7 @@ export function Dropdown({
           data-testid={`${prefix}-menu`}
           onKeyDown={onMenuKey}
           className={cn(
-            'absolute z-40 mt-1 min-w-44 rounded-lg border border-border bg-card py-1 shadow-lg',
+            'absolute z-40 mt-1 min-w-44 rounded-row border border-border bg-surface p-1.5 shadow-lg',
             align === 'right' ? 'right-0' : 'left-0',
           )}
         >
@@ -101,7 +101,7 @@ export function Dropdown({
                 it.onSelect();
               }}
               className={cn(
-                'block w-full px-3 py-2 text-left text-sm hover:bg-background disabled:opacity-50',
+                'block w-full rounded-xl px-3 py-2 text-left font-semibold hover:bg-bg disabled:opacity-50',
                 it.danger ? 'text-error' : 'text-text',
               )}
             >

@@ -12,7 +12,7 @@ import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { Tabs } from '@/components/ui/Tabs';
 import { orgNavigation, studentNavigation, teacherNavigation } from '@/utils/navigation';
-import { navTestId, slug, testIdBase } from '@/utils/testid';
+import { slug, testIdBase } from '@/utils/testid';
 import { NavLinks } from '../locators/shell';
 import { tid } from '../locators/tid';
 
@@ -23,21 +23,15 @@ describe('testid helpers', () => {
     expect(testIdBase('notes-textarea')).toBe('notes');
     expect(testIdBase(undefined)).toBeUndefined();
     expect(slug('Roles & Permissions')).toBe('roles-permissions');
-    expect(navTestId('/org/dashboard')).toBe('nav-dashboard-link');
-    expect(navTestId('/org/students', 'people')).toBe('nav-people-students-link');
-    expect(navTestId('/org/exams/published', 'exams')).toBe('nav-exams-published-link');
-    expect(navTestId('/org/settings/permissions', 'settings')).toBe(
-      'nav-settings-permissions-link',
-    );
   });
   it('give every sidebar link a unique id', () => {
-    const ids = orgNavigation.flatMap((s) => s.items.map((i) => navTestId(i.to, s.id)));
+    const ids = orgNavigation.flatMap((s) => s.items.map((i) => `nav-${i.key}-link`));
     expect(new Set(ids).size).toBe(ids.length);
   });
   it('keep the QA locator constants in step with the real sidebar (tests/locators/shell.ts)', () => {
     const areas = [orgNavigation, teacherNavigation, studentNavigation];
     const real = new Set(
-      areas.flatMap((a) => a.flatMap((s) => s.items.map((i) => tid(navTestId(i.to, s.id))))),
+      areas.flatMap((a) => a.flatMap((s) => s.items.map((i) => tid(`nav-${i.key}-link`)))),
     );
     for (const [name, selector] of Object.entries(NavLinks))
       expect(real.has(selector), `NavLinks.${name} = ${selector}`).toBe(true);
@@ -235,14 +229,18 @@ describe('tabs, menus, dialogs, states, page root, nav', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('nav-people-group-btn')).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('nav-people-students-link')).toHaveAttribute('aria-current', 'page');
-    const exams = screen.getByTestId('nav-exams-group-btn');
-    expect(exams).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByTestId('nav-exams-published-link')).not.toBeInTheDocument();
-    fireEvent.click(exams);
-    const link = screen.getByTestId('nav-exams-published-link');
+    expect(screen.getByTestId('nav-students-link')).toHaveAttribute('aria-current', 'page');
+    const group = screen.getByTestId('nav-assessments-group-btn');
+    expect(group).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('nav-exams-link')).not.toBeInTheDocument();
+    fireEvent.click(group);
+    const link = screen.getByTestId('nav-exams-link');
     expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/org/exams/published');
-    expect(screen.queryByText('Academic Structure')).not.toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/org/exams');
+    // Courses keeps the prototype's id; Academic Structure, Published Exams and Assignments are gone from the menu.
+    fireEvent.click(screen.getByTestId('nav-academics-group-btn'));
+    expect(screen.getByTestId('nav-syllabus-link')).toHaveTextContent('Courses');
+    for (const gone of ['Academic Structure', 'Published Exams', 'Assignments', 'Syllabus'])
+      expect(screen.queryByText(gone)).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
-// PURPOSE: Circular avatar showing initials.
-// WHY: Topbar and lists show who someone is without needing image uploads.
+// PURPOSE: Circular avatar showing initials (prototype .avatar: peach circle, extra-bold initial).
+// WHY: The sidebar, page header and lists show who someone is without needing image uploads.
 // DEPENDS ON: utils/cn.ts.
 
 import { cn } from '@/utils/cn';
@@ -28,7 +28,7 @@ export function Avatar({
       aria-label={name}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-white',
+        'inline-flex shrink-0 items-center justify-center rounded-full bg-peach font-extrabold text-peach-ink',
         className,
       )}
     >

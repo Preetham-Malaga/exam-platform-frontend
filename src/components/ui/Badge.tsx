@@ -1,17 +1,19 @@
-// PURPOSE: Status badges (success/warning/error/info/neutral) and a mapper for known statuses.
+// PURPOSE: Pill badges (prototype .pill .b-ok / .b-warn / .b-bad / .b-lav / .b-neutral …) and a mapper for known statuses.
 // WHY: Result, exam and account statuses must look the same on every page.
 // DEPENDS ON: utils/cn.ts.
 
 import type { ReactNode } from 'react';
 import { cn } from '@/utils/cn';
 
-export type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral';
+export type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'sky' | 'dark';
 const TONES: Record<BadgeTone, string> = {
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/15 text-[#B45309]',
-  error: 'bg-error/10 text-error',
-  info: 'bg-secondary/30 text-primary',
-  neutral: 'bg-background text-muted border border-border',
+  success: 'bg-mint text-mint-ink',
+  warning: 'bg-butter text-butter-ink',
+  error: 'bg-danger-bg text-danger',
+  info: 'bg-lav text-lav-ink',
+  neutral: 'bg-bg text-ink',
+  sky: 'bg-sky text-sky-ink',
+  dark: 'bg-primary text-on-primary',
 };
 
 export function Badge({
@@ -26,7 +28,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold',
         TONES[tone],
         className,
       )}
@@ -42,27 +44,31 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   passed: 'success',
   completed: 'success',
   trialing: 'info',
-  draft: 'neutral',
+  draft: 'warning',
   inactive: 'neutral',
   unpublished: 'warning',
   pending: 'warning',
   pending_email: 'warning',
+  invited: 'sky',
   in_progress: 'info',
   failed: 'error',
   suspended: 'error',
-  closed: 'error',
+  disabled: 'error',
+  closed: 'neutral',
   canceled: 'error',
   expired: 'error',
   past_due: 'warning',
   archived: 'neutral',
 };
 
-/** Renders a known status string with its tone; unknown values fall back to neutral. */
+/** Renders a known status string with its tone; unknown values fall back to neutral. data-state carries the raw value. */
 export function StatusBadge({ status }: { status: string }) {
   const label = status.replace(/_/g, ' ');
   return (
     <Badge tone={STATUS_TONE[status.toLowerCase()] ?? 'neutral'}>
-      {label.charAt(0).toUpperCase() + label.slice(1)}
+      <span data-state={status.toLowerCase()}>
+        {label.charAt(0).toUpperCase() + label.slice(1)}
+      </span>
     </Badge>
   );
 }

@@ -1,34 +1,253 @@
-/* PURPOSE: Central design tokens (taken from the POC index.html) plus Tailwind layers.
-   WHY: Every component reads colours from these variables, so the theme lives in one file.
-   DEPENDS ON: tailwind.config.ts maps utilities such as bg-primary to these variables. */
+/* PURPOSE: Design tokens of the approved prototype (docs/design/exam-platform-prototype.html, TOKENS-START…END) plus
+            Tailwind layers. Light, dark (system setting or data-theme) and the brand presets of Settings › Branding.
+   WHY: Every component reads colours from these variables, so a theme or brand change never touches components.
+   DEPENDS ON: tailwind.config.ts maps utilities (bg-surface, text-ink, bg-lav …) to these variables. */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ---- prototype tokens (copied exactly) ---- */
 :root {
-  --color-primary: #363b6c;
-  --color-secondary: #a8a3e3;
-  --color-background: #f5f6fa;
-  --color-card: #ffffff;
-  --color-text: #1f2937;
-  --color-muted: #6b7280;
-  --color-success: #16a34a;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
-  --color-border: #e5e7eb;
+  --bg: #f3f1f9;
+  --surface: #ffffff;
+  --surface-2: #faf9fd;
+  --row: #f8f7fc;
+  --ink: #221d3a;
+  --muted: #6b6487;
+  --border: #e2def0;
+  --accent: #5b3fd6;
+  --focus: #7c63f5;
+  --primary: #221d3a;
+  --on-primary: #ffffff;
+  --hero: #221d3a;
+  --on-hero: #ffffff;
+  --hero-muted: #c9c2ea;
+  --lav: #e5deff;
+  --lav-ink: #3e2a9e;
+  --mint: #d6f3e4;
+  --mint-ink: #1c6b45;
+  --peach: #ffe3d3;
+  --peach-ink: #8a3b12;
+  --sky: #d7e8ff;
+  --sky-ink: #1e4d8f;
+  --butter: #fff3c4;
+  --butter-ink: #6e5600;
+  --pink: #fdddeb;
+  --pink-ink: #8c1d40;
+  --danger-bg: #ffe0e3;
+  --danger: #a1192b;
+  --dash: #c9c0f0;
+  --bar: #e5deff;
+  --bar-peak: #7c63f5;
+  --font:
+    'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --display: var(--font);
+  --r-card: 28px;
+  --r-tile: 24px;
+  --r-row: 18px;
+  --r-input: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #141220;
+    --surface: #1d1a2a;
+    --surface-2: #252238;
+    --row: #232035;
+    --ink: #eeeafb;
+    --muted: #a9a3c4;
+    --border: #352f4c;
+    --accent: #b7a8ff;
+    --focus: #9c88ff;
+    --primary: #cfc2ff;
+    --on-primary: #17132a;
+    --hero: #2b2450;
+    --on-hero: #ffffff;
+    --hero-muted: #c9c2ea;
+    --lav: #2e2758;
+    --lav-ink: #d9d0ff;
+    --mint: #16382a;
+    --mint-ink: #9ee6bf;
+    --peach: #3d261a;
+    --peach-ink: #ffc9a8;
+    --sky: #18304f;
+    --sky-ink: #b5d3ff;
+    --butter: #3a3214;
+    --butter-ink: #f5de88;
+    --pink: #3e1e2d;
+    --pink-ink: #ffb7d2;
+    --danger-bg: #3e1c22;
+    --danger: #ff9aa6;
+    --dash: #4a4270;
+    --bar: #3a3266;
+    --bar-peak: #9c88ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #141220;
+  --surface: #1d1a2a;
+  --surface-2: #252238;
+  --row: #232035;
+  --ink: #eeeafb;
+  --muted: #a9a3c4;
+  --border: #352f4c;
+  --accent: #b7a8ff;
+  --focus: #9c88ff;
+  --primary: #cfc2ff;
+  --on-primary: #17132a;
+  --hero: #2b2450;
+  --on-hero: #ffffff;
+  --hero-muted: #c9c2ea;
+  --lav: #2e2758;
+  --lav-ink: #d9d0ff;
+  --mint: #16382a;
+  --mint-ink: #9ee6bf;
+  --peach: #3d261a;
+  --peach-ink: #ffc9a8;
+  --sky: #18304f;
+  --sky-ink: #b5d3ff;
+  --butter: #3a3214;
+  --butter-ink: #f5de88;
+  --pink: #3e1e2d;
+  --pink-ink: #ffb7d2;
+  --danger-bg: #3e1c22;
+  --danger: #ff9aa6;
+  --dash: #4a4270;
+  --bar: #3a3266;
+  --bar-peak: #9c88ff;
+  color-scheme: dark;
+}
+
+/* ---- brand presets (Settings › Branding); "violet" is the default above ---- */
+:root[data-brand='ocean'] {
+  --accent: #0b6b8a;
+  --focus: #1592b8;
+  --lav: #d3eef6;
+  --lav-ink: #0b4f66;
+  --bar: #d3eef6;
+  --bar-peak: #1592b8;
+  --hero: #0b3b4f;
+  --primary: #0b3b4f;
+}
+:root[data-brand='forest'] {
+  --accent: #2d7a4f;
+  --focus: #3e9a66;
+  --lav: #d9efd9;
+  --lav-ink: #1e5a36;
+  --bar: #d9efd9;
+  --bar-peak: #3e9a66;
+  --hero: #173b28;
+  --primary: #173b28;
+}
+:root[data-brand='sunset'] {
+  --accent: #b5471b;
+  --focus: #d9622f;
+  --lav: #ffe1d1;
+  --lav-ink: #8a3b12;
+  --bar: #ffe1d1;
+  --bar-peak: #d9622f;
+  --hero: #4a1e10;
+  --primary: #4a1e10;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand='ocean']:not([data-theme='light']) {
+    --accent: #7fd3ee;
+    --focus: #4fb8da;
+    --lav: #123845;
+    --lav-ink: #bceaf8;
+    --bar: #173f4e;
+    --bar-peak: #4fb8da;
+    --hero: #0f3442;
+    --primary: #9fddf0;
+  }
+  :root[data-brand='forest']:not([data-theme='light']) {
+    --accent: #8fdcae;
+    --focus: #5fc48a;
+    --lav: #163a26;
+    --lav-ink: #c2f0d3;
+    --bar: #1b432c;
+    --bar-peak: #5fc48a;
+    --hero: #163a26;
+    --primary: #a8e6c0;
+  }
+  :root[data-brand='sunset']:not([data-theme='light']) {
+    --accent: #ffb08a;
+    --focus: #f08a5d;
+    --lav: #40231a;
+    --lav-ink: #ffd3bd;
+    --bar: #4a2a1e;
+    --bar-peak: #f08a5d;
+    --hero: #40231a;
+    --primary: #ffc4a6;
+  }
+}
+:root[data-brand='ocean'][data-theme='dark'] {
+  --accent: #7fd3ee;
+  --focus: #4fb8da;
+  --lav: #123845;
+  --lav-ink: #bceaf8;
+  --bar: #173f4e;
+  --bar-peak: #4fb8da;
+  --hero: #0f3442;
+  --primary: #9fddf0;
+}
+:root[data-brand='forest'][data-theme='dark'] {
+  --accent: #8fdcae;
+  --focus: #5fc48a;
+  --lav: #163a26;
+  --lav-ink: #c2f0d3;
+  --bar: #1b432c;
+  --bar-peak: #5fc48a;
+  --hero: #163a26;
+  --primary: #a8e6c0;
+}
+:root[data-brand='sunset'][data-theme='dark'] {
+  --accent: #ffb08a;
+  --focus: #f08a5d;
+  --lav: #40231a;
+  --lav-ink: #ffd3bd;
+  --bar: #4a2a1e;
+  --bar-peak: #f08a5d;
+  --hero: #40231a;
+  --primary: #ffc4a6;
+}
+
+/* ---- names used by screens built before the prototype; they follow the tokens above ---- */
+:root {
+  --color-primary: var(--primary);
+  --color-secondary: var(--focus);
+  --color-background: var(--bg);
+  --color-card: var(--surface);
+  --color-text: var(--ink);
+  --color-muted: var(--muted);
+  --color-success: var(--mint-ink);
+  --color-warning: var(--butter-ink);
+  --color-error: var(--danger);
+  --color-border: var(--border);
 }
 
 @layer base {
-  html {
-    font-size: 14px;
-  }
   body {
-    @apply bg-background font-sans text-text antialiased;
-    line-height: 1.5;
+    @apply bg-bg font-sans text-ink antialiased;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
   :focus-visible {
-    outline: 2px solid var(--color-secondary);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
   /* People who ask the OS for less motion get none; automated tests run this way too (playwright.config.ts). */
@@ -45,21 +264,14 @@
 }
 
 @layer components {
-  /* The fixed sidebar scrolls on its own when the menu is taller than the window (short screens, browser zoom).
-     A slim, light-on-dark bar instead of the default grey one; it only shows while there is something to scroll. */
-  .sidebar-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(255 255 255 / 0.25) transparent;
-    overscroll-behavior: contain;
+  .num {
+    font-variant-numeric: tabular-nums;
   }
-  .sidebar-scroll::-webkit-scrollbar {
-    width: 6px;
-  }
-  .sidebar-scroll::-webkit-scrollbar-thumb {
-    border-radius: 3px;
-    background: rgb(255 255 255 / 0.25);
-  }
-  .sidebar-scroll::-webkit-scrollbar-track {
-    background: transparent;
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 }

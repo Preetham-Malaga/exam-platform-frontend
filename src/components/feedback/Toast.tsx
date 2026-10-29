@@ -28,10 +28,10 @@ interface ToastApi {
 const Ctx = createContext<ToastApi | null>(null);
 const MIN_TOAST_MS = 4000;
 const STYLE: Record<ToastVariant, string> = {
-  success: 'border-l-success',
-  error: 'border-l-error',
-  info: 'border-l-primary',
-  warning: 'border-l-warning',
+  success: 'bg-primary text-on-primary',
+  error: 'bg-danger text-surface',
+  info: 'bg-primary text-on-primary',
+  warning: 'bg-primary text-on-primary',
 };
 
 export function ToastProvider({
@@ -74,16 +74,16 @@ export function ToastProvider({
             data-testid={`toast-${t.variant}`}
             data-state={t.variant}
             className={cn(
-              'pointer-events-auto flex items-start gap-3 rounded-lg border border-border border-l-4 bg-card p-3 shadow-lg',
+              'pointer-events-auto flex items-center gap-3 rounded-2xl px-3.5 py-3 font-semibold shadow-[0_10px_30px_rgba(0,0,0,.18)]',
               STYLE[t.variant],
             )}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-text" data-testid="toast-title">
+              <p className="text-sm" data-testid="toast-title">
                 {t.title}
               </p>
               {t.description && (
-                <p className="text-xs text-muted" data-testid="toast-description">
+                <p className="text-xs font-medium opacity-85" data-testid="toast-description">
                   {t.description}
                 </p>
               )}
@@ -92,7 +92,7 @@ export function ToastProvider({
               type="button"
               aria-label="Dismiss notification"
               data-testid="toast-close-btn"
-              className="text-muted hover:text-text"
+              className="opacity-80 hover:opacity-100"
               onClick={() => dismiss(t.id)}
             >
               <Icon name="close" size={16} />

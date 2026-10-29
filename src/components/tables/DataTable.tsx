@@ -73,11 +73,14 @@ export function DataTable<T>({
       />
     );
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm" data-testid={`${testId}-table`}>
+    <div className="overflow-x-auto px-3">
+      <table
+        className="w-full min-w-[640px] border-separate border-spacing-x-0 border-spacing-y-1.5"
+        data-testid={`${testId}-table`}
+      >
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
+          <tr className="text-left text-xs font-bold text-muted">
             {columns.map((c) => {
               const active = sort?.key === c.key;
               return (
@@ -93,12 +96,12 @@ export function DataTable<T>({
                         ? 'none'
                         : undefined
                   }
-                  className={cn('whitespace-nowrap px-4 py-3 font-semibold', c.className)}
+                  className={cn('whitespace-nowrap px-3 py-1.5 font-bold', c.className)}
                 >
                   {c.sortable && onSortChange ? (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 uppercase hover:text-text"
+                      className="inline-flex items-center gap-1 font-bold hover:text-ink"
                       data-testid={`${testId}-sort-${c.key}-btn`}
                       onClick={() =>
                         onSortChange({
@@ -127,10 +130,7 @@ export function DataTable<T>({
             return (
               <Fragment key={rowKey(row)}>
                 <tr
-                  className={cn(
-                    'border-b border-border last:border-0 hover:bg-background/60',
-                    expanded && 'border-b-0 bg-background/60',
-                  )}
+                  className="[&>td:first-child]:rounded-l-[14px] [&>td:last-child]:rounded-r-[14px]"
                   data-testid={`${testId}-row`}
                   data-entity-id={rowKey(row)}
                   data-entity-code={rowCode?.(row) ?? undefined}
@@ -139,7 +139,7 @@ export function DataTable<T>({
                   {columns.map((c) => (
                     <td
                       key={c.key}
-                      className={cn('px-4 py-3 align-middle', c.className)}
+                      className={cn('bg-row px-3 py-[11px] align-middle', c.className)}
                       data-testid={`${testId}-row-${c.key}-cell`}
                     >
                       {c.cell(row)}
@@ -148,11 +148,11 @@ export function DataTable<T>({
                 </tr>
                 {expanded && (
                   <tr
-                    className="border-b border-border bg-background/60 last:border-0"
+                    className="[&>td]:rounded-[14px]"
                     data-testid={`${testId}-row-expanded`}
                     data-entity-id={rowKey(row)}
                   >
-                    <td colSpan={columns.length} className="px-4 pb-4 pt-1">
+                    <td colSpan={columns.length} className="bg-row p-3">
                       {below}
                     </td>
                   </tr>
@@ -187,7 +187,7 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-muted"
+      className="flex flex-wrap items-center justify-between gap-3 px-[22px] py-3 text-sm text-muted"
       data-testid={testId}
       data-page={page}
       data-total-pages={totalPages}

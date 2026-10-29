@@ -353,8 +353,9 @@ describe('badges, cards, states, charts', () => {
         <StatusBadge status="Passed" />
       </>,
     );
-    expect(screen.getByText('Pending email').className).toContain('bg-warning');
-    expect(screen.getByText('Passed').className).toContain('bg-success');
+    expect(screen.getByText('Pending email').parentElement!.className).toContain('bg-butter');
+    expect(screen.getByText('Pending email')).toHaveAttribute('data-state', 'pending_email');
+    expect(screen.getByText('Passed').parentElement!.className).toContain('bg-mint');
   });
   it('StatCard shows the value, or a loading skeleton', () => {
     const { rerender } = render(<StatCard label="Students" value="12" />);
@@ -439,12 +440,14 @@ describe('layout', () => {
     );
     expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['A', 'B']);
   });
-  it('AppShell renders skip link, main landmark, navigation and the user name', () => {
+  it('AppShell renders skip link, main landmark, navigation, the user and Log out', () => {
+    const onSignOut = vi.fn();
     render(
       <MemoryRouter>
         <AppShell
           sections={orgNavigation.slice(0, 2)}
-          user={{ name: 'Dev User', email: 'dev@x.com' }}
+          user={{ name: 'Dev User', email: 'dev@x.com', role: 'Owner' }}
+          onSignOut={onSignOut}
         >
           <p>content</p>
         </AppShell>
@@ -455,29 +458,26 @@ describe('layout', () => {
       '#main-content',
     );
     expect(screen.getByRole('main')).toHaveTextContent('content');
-    expect(screen.getByText('Dev User')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Toggle navigation' })).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-user-name')).toHaveTextContent('Dev User');
+    fireEvent.click(screen.getByTestId('nav-logout-btn'));
+    expect(onSignOut).toHaveBeenCalled();
   });
-  it('on small screens the menu button opens the menu in the page, under the topbar', async () => {
+  it('the menu button (small screens) opens the menu inside the sidebar card, never a drawer', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/org/dashboard']}>
         <AppShell sections={orgNavigation.slice(0, 2)}>
           <p>x</p>
         </AppShell>
       </MemoryRouter>,
     );
-    expect(screen.queryByTestId('nav-mobile-menu')).not.toBeInTheDocument();
-    const toggle = screen.getByRole('button', { name: 'Toggle navigation' });
+    const toggle = screen.getByTestId('nav-menu-btn');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'true');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    const drawer = await screen.findByTestId('nav-mobile-menu');
-    expect(within(drawer).getByRole('link', { name: /Dashboard/ })).toBeInTheDocument();
-    await waitFor(() =>
-      expect(
-        within(drawer).getByRole('navigation', { name: 'Main navigation' }),
-      ).toBeInTheDocument(),
-    );
+    const nav = within(screen.getByRole('navigation', { name: 'Main' }));
+    await waitFor(() => expect(nav.getByRole('link', { name: /Dashboard/ })).toBeInTheDocument());
   });
 });
 
@@ -492,9 +492,9 @@ describe('navigation filtering (UX only; the API and database enforce access)', 
   it('items without a permission requirement are always kept', () => {
     const out = filterNavigation(studentNavigation, () => false);
     expect(out.flatMap((s) => s.items.map((i) => i.label))).toEqual([
-      'Dashboard',
+      'Home',
       'My Exams',
-      'Results',
+      'My Results',
     ]);
   });
 });

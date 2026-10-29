@@ -1,10 +1,12 @@
-// PURPOSE: Page title block with optional breadcrumb and action buttons, plus the Breadcrumb component.
+// PURPOSE: The prototype page header (.ph): breadcrumb, a large title, a description, the page's actions and the
+//          signed-in person's pill on the right. Also exports Breadcrumb.
 // WHY: Every page starts the same way; one header keeps titles, spacing and heading levels consistent (one h1 per page).
-// DEPENDS ON: React Router (Link), ui/Icon.tsx.
+// DEPENDS ON: React Router (Link), shellUser.ts (user pill), ui/Avatar.tsx.
 
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Icon } from '@/components/ui/Icon';
+import { Avatar } from '@/components/ui/Avatar';
+import { useShellUser } from './shellUser';
 
 export interface Crumb {
   label: string;
@@ -13,35 +15,56 @@ export interface Crumb {
 
 export function Breadcrumb({ items }: { items: Crumb[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-1" data-testid="breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted">
+    <nav aria-label="Breadcrumb" data-testid="breadcrumb">
+      <ol className="flex flex-wrap items-center gap-1 text-xs font-semibold text-muted">
         {items.map((c, i) => {
           const last = i === items.length - 1;
           return (
-            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-              {c.to && !last ? (
-                <Link
-                  to={c.to}
-                  className="hover:text-primary hover:underline"
-                  data-testid="breadcrumb-link"
-                  data-to={c.to}
-                >
-                  {c.label}
-                </Link>
-              ) : (
-                <span
-                  aria-current={last ? 'page' : undefined}
-                  className={last ? 'text-text' : undefined}
-                >
-                  {c.label}
-                </span>
-              )}
-              {!last && <Icon name="chevronRight" size={12} />}
-            </li>
+            <Fragment key={`${c.label}-${i}`}>
+              <li>
+                {c.to && !last ? (
+                  <Link
+                    to={c.to}
+                    className="font-bold text-accent hover:underline"
+                    data-testid="breadcrumb-link"
+                    data-to={c.to}
+                  >
+                    {c.label}
+                  </Link>
+                ) : (
+                  <span aria-current={last ? 'page' : undefined}>{c.label}</span>
+                )}
+              </li>
+              {!last && <li aria-hidden="true">›</li>}
+            </Fragment>
           );
         })}
       </ol>
     </nav>
+  );
+}
+
+/** The signed-in person (prototype .user-pill), shown at the right of every page header. */
+export function UserPill() {
+  const user = useShellUser();
+  if (!user) return null;
+  return (
+    <div
+      className="flex items-center gap-2.5 rounded-full bg-surface py-1 pl-1 pr-3.5"
+      data-testid="header-user-pill"
+    >
+      <Avatar name={user.name} />
+      <div className="min-w-0">
+        <b className="block truncate" data-testid="header-user-name">
+          {user.name}
+        </b>
+        {user.email && (
+          <small className="block truncate text-xs text-muted" data-testid="header-user-email">
+            {user.email}
+          </small>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -51,19 +74,24 @@ export function PageHeader({
   actions,
   breadcrumb,
 }: {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   actions?: ReactNode;
   breadcrumb?: Crumb[];
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-      <div>
+    <header className="flex flex-wrap items-end justify-between gap-3.5" data-testid="page-header">
+      <div className="min-w-0">
         {breadcrumb && <Breadcrumb items={breadcrumb} />}
-        <h1 className="text-[22px] font-bold text-text">{title}</h1>
-        {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+        <h1 className="font-display text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em]">
+          {title}
+        </h1>
+        {description && <p className="mt-1 max-w-[62ch] text-muted">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </div>
+      <div className="flex flex-wrap items-center gap-2.5">
+        {actions}
+        <UserPill />
+      </div>
+    </header>
   );
 }

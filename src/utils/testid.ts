@@ -16,13 +16,3 @@ export function slug(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
-
-/** Sidebar link id from its route, area prefix dropped, group first when it has one:
- *  "/org/students" in group "people" → "nav-people-students-link"; "/org/dashboard" → "nav-dashboard-link".
- *  A route starting with the group's own name drops it: "/org/exams/published" in "exams" → "nav-exams-published-link". */
-export function navTestId(to: string, group?: string): string {
-  const parts = to.split('/').filter(Boolean);
-  let rest = parts.length > 1 ? parts.slice(1) : parts;
-  if (group && rest.length > 1 && rest[0] === group) rest = rest.slice(1);
-  return `nav-${group ? `${group}-` : ''}${slug(rest.join('-'))}-link`;
-}

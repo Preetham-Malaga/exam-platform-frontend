@@ -55,9 +55,11 @@ for (const role of ROLES) {
     await expect(page).toHaveURL(new RegExp(`${user.home}$`), { timeout: 30_000 });
     const shell = new AppShell(page);
     await expect(shell.userEmail()).toHaveText(user.email);
-    await expect(shell.navLink(NavLinks.dashboard)).toBeVisible();
+    await expect(
+      shell.navLink(role === 'student' ? NavLinks.home : NavLinks.dashboard),
+    ).toBeVisible();
     // The shell only: the dashboards get their own ids in their phase (docs/locators.md → "Not converted yet").
-    await expectUniqueTestIds(page, 'header, [data-testid="nav"]');
+    await expectUniqueTestIds(page, '[data-testid="sidebar"], [data-testid="page-header"]');
 
     await shell.signOut();
     await expect(page).toHaveURL(/\/login/);

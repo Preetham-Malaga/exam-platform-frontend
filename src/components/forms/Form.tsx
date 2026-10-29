@@ -15,8 +15,8 @@ import { cn } from '@/utils/cn';
 import { testIdBase } from '@/utils/testid';
 
 const control =
-  'w-full rounded-lg border bg-card px-3 text-sm text-text placeholder:text-muted/70 transition-colors ' +
-  'focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/40 disabled:cursor-not-allowed disabled:bg-background';
+  'w-full min-w-0 rounded-input border-[1.5px] bg-surface-2 px-3.5 text-ink placeholder:text-muted/80 ' +
+  'focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-focus disabled:cursor-not-allowed disabled:opacity-70';
 
 interface FieldShellProps {
   label: string;
@@ -45,11 +45,11 @@ export function Field({
   const describedBy =
     [error ? `${id}-err` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
-      <label htmlFor={id} className="text-[13px] font-medium text-text">
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+      <label htmlFor={id} className="text-xs font-bold text-muted">
         {label}
         {required && (
-          <span className="text-error" aria-hidden="true">
+          <span className="text-danger" aria-hidden="true">
             {' '}
             *
           </span>
@@ -59,7 +59,7 @@ export function Field({
       {hint && !error && (
         <p
           id={`${id}-hint`}
-          className="text-xs text-muted"
+          className="text-xs font-semibold text-muted"
           data-testid={base ? `${base}-hint` : undefined}
         >
           {hint}
@@ -69,7 +69,7 @@ export function Field({
         <p
           id={`${id}-err`}
           role="alert"
-          className="text-xs text-error"
+          className="text-xs font-semibold text-danger"
           data-testid={base ? `${base}-error` : undefined}
         >
           {error}

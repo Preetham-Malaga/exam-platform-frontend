@@ -251,7 +251,7 @@ function Runner({ paper }: { paper: Paper }) {
                       a?.flagged
                         ? 'border-warning bg-warning/20 text-text'
                         : a?.optionId
-                          ? 'border-primary bg-primary text-white'
+                          ? 'border-primary bg-primary text-on-primary'
                           : 'border-border bg-card text-text',
                       i === index && 'ring-2 ring-secondary ring-offset-1',
                     )}

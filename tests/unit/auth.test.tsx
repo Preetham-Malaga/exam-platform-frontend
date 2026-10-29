@@ -172,12 +172,11 @@ describe('session expiry', () => {
 });
 
 describe('sign out and switching users', () => {
-  it('Sign out in the account menu ends the session and returns to /login', async () => {
+  it('Log out in the sidebar ends the session and returns to /login', async () => {
     resetFakeSupabase(fakeSession());
     renderRoute('/app');
     await screen.findByRole('heading', { name: /^Welcome, / });
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
+    await userEvent.click(screen.getByTestId('nav-logout-btn'));
     expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
     expect(fakeSupabase.auth.signOut).toHaveBeenCalledTimes(1);
   });
@@ -205,7 +204,7 @@ describe('sign out and switching users', () => {
     });
     renderRoute('/app');
     await screen.findByRole('heading', { name: /^Welcome, / });
-    expect(screen.getByText('Student')).toBeInTheDocument();
+    expect(within(screen.getByRole('main')).getByText('Student')).toBeInTheDocument();
     expect(screen.getByText('ORG-000007')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Open organization profile' }),
