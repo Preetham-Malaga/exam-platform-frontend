@@ -49,6 +49,7 @@ export interface QuestionListParams {
   page: number;
   pageSize: number;
   search?: string;
+  courseId?: string;
   subjectId?: string;
   topicId?: string;
   status?: QuestionStatus;
@@ -306,4 +307,13 @@ export interface StudentPerformance {
   bestPercentage: number | null;
   passed: number;
   lastResultAt: string | null;
+}
+
+/** POST /questions/import: one row per CSV line (row = line number shown back in errors). */
+export interface QuestionImportRow extends QuestionBody {
+  row: number;
+}
+export interface QuestionImportResult {
+  created: number;
+  errors: Array<{ row: number; message: string }>;
 }

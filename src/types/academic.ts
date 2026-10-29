@@ -167,6 +167,13 @@ export interface CatalogTree {
     status: ActiveStatus;
     courseId: string | null;
     questionCount: number;
+    questionStats?: {
+      published: number;
+      draft: number;
+      easy: number;
+      medium: number;
+      hard: number;
+    };
   }>;
   topics: Array<{
     id: string;

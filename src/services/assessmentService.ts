@@ -28,6 +28,8 @@ import type {
   StudentPerformance,
   SubmitResponse,
   AttemptMeta,
+  QuestionImportResult,
+  QuestionImportRow,
 } from '@/types/assessment';
 
 const P = API_PREFIX;
@@ -47,6 +49,8 @@ export const questionService = {
   setStatus: (id: string, status: 'draft' | 'archived') =>
     api.patch<Question>(`${P}/questions/${id}/status`, { status }),
   remove: (id: string) => api.delete<{ deleted: true }>(`${P}/questions/${id}`),
+  import: (rows: QuestionImportRow[], publish: boolean) =>
+    api.post<QuestionImportResult>(`${P}/questions/import`, { rows, publish }),
 };
 
 export const examService = {

@@ -13,7 +13,7 @@
   "src/pages/organization/OrganizationProfilePage.tsx": 8,
   "src/pages/organization/UsersPage.tsx": 1,
   "src/pages/public/NotFoundPage.tsx": 1,
-  "src/pages/questions/QuestionBankPage.tsx": 4,
+  "src/pages/questions/QuestionBankPage.tsx": 2,
   "src/pages/student/ExamRunnerPage.tsx": 1,
   "src/pages/student/ResultReviewPage.tsx": 1,
   "src/pages/student/StudentDashboardPage.tsx": 2,

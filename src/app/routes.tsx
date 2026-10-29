@@ -86,6 +86,15 @@ const assessmentRoutes: RouteObject[] = [
     children: [
       { path: 'questions', ...page(() => import('@/pages/questions/QuestionBankPage')) },
       {
+        element: <RequirePermission permission="question.create" />,
+        children: [
+          {
+            path: 'questions/import',
+            ...page(() => import('@/pages/questions/QuestionImportPage')),
+          },
+        ],
+      },
+      {
         path: 'questions/new',
         lazy: async () => ({
           Component: (await import('@/pages/forms/AddPages')).QuestionFormPage,

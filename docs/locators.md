@@ -181,6 +181,10 @@ Constants: `tests/locators/dashboard.ts`. Data from `GET /organizations/current/
 | `dashboard-today`, `dashboard-today-row` (opens), `dashboard-today-closing-row`, `dashboard-today-exam-link`                             | today                                                           | row            |                                                                           |
 | `dashboard-teachers`, `dashboard-teacher-row`, `dashboard-top`, `dashboard-top-row`, `dashboard-recent-results`, `result-row`            | lists                                                           | row            | `data-entity-id`                                                          |
 
+## Question Bank (`/org/questions`, prototype `vQBDrill`)
+
+Constants: `tests/locators/questions.ts`. Course cards `questions-course-card` (`data-entity-id`, `data-entity-code`) → subject tabs `questions-subject-tab` (`data-value` subject id or `all`), difficulty chips `questions-filter-diff-chip` (`data-value`, `aria-pressed`), cards `questions-card` (`data-entity-id`, `data-state` draft/published) with `-options-btn`, `-edit-btn`, `-publish-btn` / `-draft-btn`, `-delete-btn` → `questions-delete-confirm`. Header: `questions-new-btn`, `questions-import-btn`. Import page `page-questions-import`: `questions-import-file-input`, `-template-link`, `-preview-row` (`data-state` ok/error, `data-entity-id` = line), `-publish-checkbox`, `-confirm-btn`, `-result`.
+
 ## Add pages
 
 Every Add button opens its own page; the form inside keeps the screen's ids. Roots: `page-form-question` (`/org/questions/new`, `/org/questions/:id/edit`), `page-form-exam` (`/org/exams/new`), `page-form-student` (`/org/students/new`), `page-form-teacher` (`/org/teachers/new`), `page-form-admin` (`/org/admins/new`). Breadcrumb `breadcrumb-link` goes back to the list.

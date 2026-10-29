@@ -1,331 +1,474 @@
-// PURPOSE: /org/questions and /teacher/questions - the question bank: filter by subject/topic/status/difficulty, search,
-//          create and edit questions, publish, archive and delete.
-// WHY: Guide Part 18 step 12. Teachers see only their scope (RLS); students cannot open this page or its API.
-// DEPENDS ON: features/assessment/*, features/academic/hooks.ts, shared table/form/dialog components.
+// PURPOSE: /org/questions and /teacher/questions - the prototype's Question Bank (vQBDrill): course cards with counts and
+//          a difficulty bar → inside a course, subject tabs, difficulty chips and question cards with their actions.
+// WHY: Owners and teachers start from the course they teach. Add, edit and import open their own pages; delete is
+//      confirmed in place. Counts come from GET /catalog/tree (one call); questions from GET /questions?courseId=….
+// DEPENDS ON: features/academic/hooks.ts, features/assessment/hooks.ts, services/assessmentService.ts.
 
-import { useNavigate } from 'react-router-dom';
-import { useAreaBase } from '@/features/assessment/area';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/feedback/Toast';
-import { Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageRoot } from '@/components/layout/PageRoot';
 import { InlineConfirm } from '@/components/inline/Inline';
-import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
-import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
-import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Dropdown, type MenuItem } from '@/components/ui/Dropdown';
 import { Icon } from '@/components/ui/Icon';
 import { usePermissions } from '@/contexts/PermissionContext';
-import { useSubjects, useTopics } from '@/features/academic/hooks';
+import { useCatalogTree } from '@/features/academic/hooks';
 import { errorText } from '@/features/academic/ui';
-import { DIFFICULTY_TONE, TYPE_LABEL } from '@/features/assessment/format';
-import { useAssessmentMutation, useQuestions } from '@/features/assessment/hooks';
-import { Can } from '@/features/auth/Can';
+import { useAreaBase } from '@/features/assessment/area';
+import { useAssessmentMutation, useQuestion, useQuestions } from '@/features/assessment/hooks';
 import { questionService } from '@/services/assessmentService';
-import type { Difficulty, QuestionStatus, QuestionSummary } from '@/types/assessment';
+import type { Difficulty, QuestionSummary } from '@/types/assessment';
+import { cn } from '@/utils/cn';
 
-const PAGE_SIZE = 10;
+const TONES = ['lav', 'mint', 'peach', 'sky', 'butter', 'pink'] as const;
+const COVER: Record<(typeof TONES)[number], string> = {
+  lav: 'bg-lav text-lav-ink',
+  mint: 'bg-mint text-mint-ink',
+  peach: 'bg-peach text-peach-ink',
+  sky: 'bg-sky text-sky-ink',
+  butter: 'bg-butter text-butter-ink',
+  pink: 'bg-pink text-pink-ink',
+};
+const pill =
+  'inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold';
+const DIFF_PILL: Record<Difficulty, string> = {
+  easy: 'bg-mint text-mint-ink',
+  medium: 'bg-butter text-butter-ink',
+  hard: 'bg-danger-bg text-danger',
+};
+const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
+const LET = 'ABCDEF';
+const btnLink =
+  'inline-flex min-h-[44px] items-center gap-2 rounded-full px-[18px] font-bold hover:no-underline';
 
-export default function QuestionBankPage() {
-  const navigate = useNavigate();
-  const base = useAreaBase();
-  const { toast } = useToast();
-  const perms = usePermissions();
-  const [search, setSearch] = useState('');
-  const [subject, setSubject] = useState('');
-  const [topic, setTopic] = useState('');
-  const [status, setStatus] = useState('');
-  const [difficulty, setDifficulty] = useState('');
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<SortState>({ key: 'createdAt', order: 'desc' });
-  const [deleting, setDeleting] = useState<QuestionSummary | null>(null);
-
-  const subjects = useSubjects({ page: 1, pageSize: 100, sort: 'name', status: 'active' });
-  const topics = useTopics({ page: 1, pageSize: 100, subjectId: subject }, Boolean(subject));
-  const subjectOptions = useMemo(
-    () =>
-      (subjects.data?.items ?? []).map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
-    [subjects.data],
-  );
-  const q = useQuestions({
-    page,
-    pageSize: PAGE_SIZE,
-    sort: sort.key,
-    order: sort.order,
-    ...(search ? { search } : {}),
-    ...(subject ? { subjectId: subject } : {}),
-    ...(topic ? { topicId: topic } : {}),
-    ...(status ? { status: status as QuestionStatus } : {}),
-    ...(difficulty ? { difficulty: difficulty as Difficulty } : {}),
-  });
-  const publish = useAssessmentMutation((id: string) => questionService.publish(id));
-  const setQStatus = useAssessmentMutation((v: { id: string; status: 'draft' | 'archived' }) =>
-    questionService.setStatus(v.id, v.status),
-  );
-  const remove = useAssessmentMutation((id: string) => questionService.remove(id));
-  const reset = (fn: () => void) => {
-    fn();
-    setPage(1);
-  };
-  const fail = (title: string) => (e: unknown) =>
-    toast({ title, description: errorText(e), variant: 'error' });
-  const askDelete = (row: QuestionSummary) => {
-    setDeleting(row);
-  };
-  const defaultSubject = subject || subjectOptions[0]?.value || '';
-
-  const menu = (row: QuestionSummary): MenuItem[] => {
-    const items: MenuItem[] = [];
-    if (perms.can('question.update'))
-      items.push({
-        label: 'Edit',
-        testId: 'row-actions-edit-menu-item',
-        onSelect: () => navigate(`${base}/questions/${row.id}/edit`),
-      });
-    if (row.status !== 'published' && perms.can('question.publish'))
-      items.push({
-        label: 'Publish',
-        testId: 'row-actions-publish-menu-item',
-        onSelect: () =>
-          publish.mutate(row.id, {
-            onSuccess: () => toast({ title: 'Question published', variant: 'success' }),
-            onError: fail('Could not publish the question'),
-          }),
-      });
-    if (row.status === 'published' && perms.can('question.update'))
-      items.push({
-        label: 'Archive',
-        testId: 'row-actions-archive-menu-item',
-        onSelect: () =>
-          setQStatus.mutate(
-            { id: row.id, status: 'archived' },
-            {
-              onSuccess: () => toast({ title: 'Question archived', variant: 'success' }),
-              onError: fail('Could not archive'),
-            },
-          ),
-      });
-    if (row.status === 'archived' && perms.can('question.update'))
-      items.push({
-        label: 'Back to draft',
-        testId: 'row-actions-draft-menu-item',
-        onSelect: () =>
-          setQStatus.mutate(
-            { id: row.id, status: 'draft' },
-            { onError: fail('Could not change the status') },
-          ),
-      });
-    if (perms.can('question.delete'))
-      items.push({
-        label: 'Delete',
-        danger: true,
-        testId: 'row-actions-delete-menu-item',
-        onSelect: () => askDelete(row),
-      });
-    return items;
-  };
-
+/** Options of one question, loaded when the card asks for them (the answer key is never in the list). */
+function Options({ id }: { id: string }) {
+  const q = useQuestion(id);
+  if (q.isPending) return <p className="text-xs text-muted">Loading options…</p>;
+  if (!q.data) return null;
   return (
-    <>
-      <PageHeader
-        title="Question Bank"
-        description="Objective questions with a protected answer key. Only published questions can be used in exams."
-        breadcrumb={[{ label: 'Syllabus' }, { label: 'Question Bank' }]}
-        actions={
-          <Can permission="question.create">
-            <Button
-              leftIcon={<Icon name="plus" size={16} />}
-              disabled={!subjectOptions.length}
-              title={subjectOptions.length ? undefined : 'No subject available'}
-              onClick={() =>
-                navigate(
-                  `${base}/questions/new${defaultSubject ? `?subject=${defaultSubject}` : ''}`,
-                )
-              }
-              data-testid="questions-add-btn"
+    <div className="flex flex-col gap-1.5" data-testid="question-options">
+      {q.data.options.map((o, i) => {
+        const correct = o.id === q.data.correctOptionId;
+        return (
+          <div
+            key={o.id}
+            className={cn(
+              'flex items-center gap-3 rounded-row px-3 py-2.5 font-semibold',
+              correct ? 'bg-mint' : 'bg-row',
+            )}
+            data-testid="question-option"
+            data-selected={correct}
+          >
+            <span
+              className={cn(
+                'grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] font-extrabold',
+                correct ? 'bg-mint-ink text-mint' : 'bg-surface',
+              )}
             >
-              New question
-            </Button>
-          </Can>
-        }
-      />
-      <Card padded={false}>
-        <FilterBar
-          canClear={Boolean(search || subject || topic || status || difficulty)}
-          onClear={() =>
-            reset(() => {
-              setSearch('');
-              setSubject('');
-              setTopic('');
-              setStatus('');
-              setDifficulty('');
+              {LET[i]}
+            </span>
+            <span className="flex-1">{o.text}</span>
+            {correct && <span className={cn(pill, 'bg-surface text-mint-ink')}>Correct</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuestionCard({ q, n, base }: { q: QuestionSummary; n: number; base: string }) {
+  const perms = usePermissions();
+  const { toast } = useToast();
+  const [showOptions, setShowOptions] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const publish = useAssessmentMutation((id: string) => questionService.publish(id));
+  const toDraft = useAssessmentMutation((id: string) => questionService.setStatus(id, 'draft'));
+  const remove = useAssessmentMutation((id: string) => questionService.remove(id));
+  const fail = (t: string) => (e: unknown) =>
+    toast({ title: t, description: errorText(e), variant: 'error' });
+  return (
+    <article
+      className="flex flex-col gap-3.5 rounded-card bg-surface p-[22px]"
+      data-testid="questions-card"
+      data-entity-id={q.id}
+      data-state={q.status}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <span className="eyebrow">
+          Q{n} · {q.subjectName} › {q.topicName ?? 'No topic'}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <span className={cn(pill, DIFF_PILL[q.difficulty])} data-state={q.difficulty}>
+            {cap(q.difficulty)}
+          </span>
+          <span
+            className={cn(
+              pill,
+              q.status === 'published' ? 'bg-mint text-mint-ink' : 'bg-bg text-ink',
+            )}
+            data-state={q.status}
+          >
+            {cap(q.status)}
+          </span>
+          <span className={cn(pill, 'bg-bg text-ink')}>
+            +{q.marks} / −{q.negativeMarks}
+          </span>
+        </div>
+      </div>
+      <h2 className="font-display text-[19px] font-medium leading-[1.4]">{q.questionText}</h2>
+      {showOptions && <Options id={q.id} />}
+      {confirm ? (
+        <InlineConfirm
+          open
+          testId="questions-delete"
+          title="Delete this question?"
+          message={q.examCount ? `It is used in ${q.examCount} exam(s).` : 'This cannot be undone.'}
+          confirmLabel="Delete"
+          loading={remove.isPending}
+          onCancel={() => setConfirm(false)}
+          onConfirm={() =>
+            remove.mutate(q.id, {
+              onSuccess: () => toast({ title: 'Question deleted', variant: 'success' }),
+              onError: (e) => {
+                setConfirm(false);
+                fail('Could not delete the question')(e);
+              },
             })
           }
-        >
-          <SearchInput
-            value={search}
-            onSearch={(v) => reset(() => setSearch(v))}
-            placeholder="Search question text"
-            label="Search questions"
-          />
-          <div className="w-56">
-            <Select
-              label="Subject"
-              placeholder="All subjects"
-              value={subject}
-              options={subjectOptions}
-              onChange={(e) => reset(() => (setSubject(e.target.value), setTopic('')))}
-            />
-          </div>
-          <div className="w-44">
-            <Select
-              label="Topic"
-              placeholder="All topics"
-              value={topic}
-              disabled={!subject}
-              options={(topics.data?.items ?? []).map((t) => ({ value: t.id, label: t.name }))}
-              onChange={(e) => reset(() => setTopic(e.target.value))}
-            />
-          </div>
-          <div className="w-36">
-            <Select
-              label="Status"
-              placeholder="Any status"
-              value={status}
-              options={[
-                { value: 'draft', label: 'Draft' },
-                { value: 'published', label: 'Published' },
-                { value: 'archived', label: 'Archived' },
-              ]}
-              onChange={(e) => reset(() => setStatus(e.target.value))}
-            />
-          </div>
-          <div className="w-36">
-            <Select
-              label="Difficulty"
-              placeholder="Any"
-              value={difficulty}
-              options={[
-                { value: 'easy', label: 'Easy' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'hard', label: 'Hard' },
-              ]}
-              onChange={(e) => reset(() => setDifficulty(e.target.value))}
-            />
-          </div>
-        </FilterBar>
-        <DataTable<QuestionSummary>
-          caption="Questions"
-          rows={q.data?.items ?? []}
-          rowKey={(r) => r.id}
-          loading={q.isPending}
-          error={q.isError ? errorText(q.error) : undefined}
-          onRetry={() => void q.refetch()}
-          sort={sort}
-          onSortChange={(s) => reset(() => setSort(s))}
-          emptyTitle={
-            search || subject || status || difficulty
-              ? 'No questions match your filters'
-              : 'No questions yet'
-          }
-          columns={[
-            {
-              key: 'questionText',
-              header: 'Question',
-              cell: (r) => (
-                <div className="max-w-xl">
-                  <p className="line-clamp-2 font-medium text-text">{r.questionText}</p>
-                  <p className="text-xs text-muted">
-                    {r.subjectName}
-                    {r.topicName ? ` · ${r.topicName}` : ''} · {TYPE_LABEL[r.questionType]}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              key: 'difficulty',
-              header: 'Difficulty',
-              sortable: true,
-              cell: (r) => (
-                <Badge tone={DIFFICULTY_TONE[r.difficulty] ?? 'neutral'}>{r.difficulty}</Badge>
-              ),
-            },
-            {
-              key: 'marks',
-              header: 'Marks',
-              sortable: true,
-              cell: (r) => (
-                <span>
-                  {r.marks}
-                  {r.negativeMarks ? (
-                    <span className="text-xs text-muted"> (−{r.negativeMarks})</span>
-                  ) : null}
-                </span>
-              ),
-            },
-            { key: 'examCount', header: 'Exams', cell: (r) => r.examCount },
-            {
-              key: 'status',
-              header: 'Status',
-              sortable: true,
-              cell: (r) => <StatusBadge status={r.status} />,
-            },
-            {
-              key: 'actions',
-              header: '',
-              className: 'w-12 text-right',
-              cell: (r) => {
-                const items = menu(r);
-                return items.length ? (
-                  <Dropdown
-                    label={`Actions for question ${r.questionText.slice(0, 40)}`}
-                    testId="row-actions"
-                    trigger={<Icon name="more" />}
-                    items={items}
-                  />
-                ) : null;
-              },
-            },
-          ]}
-          testId="question"
-          expandedRow={(r) =>
-            deleting?.id === r.id ? (
-              <InlineConfirm
-                open
-                testId="question-delete"
-                title="Delete this question?"
-                confirmLabel="Delete question"
-                loading={remove.isPending}
-                onCancel={() => setDeleting(null)}
-                onConfirm={() =>
-                  remove.mutate(r.id, {
-                    onSuccess: () => {
-                      toast({ title: 'Question deleted', variant: 'success' });
-                      setDeleting(null);
-                    },
-                    onError: (e) => {
-                      fail('Could not delete the question')(e);
-                      setDeleting(null);
-                    },
+        />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-expanded={showOptions}
+            onClick={() => setShowOptions((v) => !v)}
+            data-testid="questions-card-options-btn"
+          >
+            {showOptions ? 'Hide answer' : 'Show answer'}
+          </Button>
+          {perms.can('question.update') && (
+            <Link
+              to={`${base}/questions/${q.id}/edit`}
+              className={cn(btnLink, 'min-h-9 bg-lav px-3.5 text-[13px] text-lav-ink')}
+              data-testid="questions-card-edit-btn"
+            >
+              <Icon name="edit" size={14} />
+              Edit
+            </Link>
+          )}
+          {perms.can('question.publish') &&
+            (q.status === 'published' ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={toDraft.isPending}
+                onClick={() =>
+                  toDraft.mutate(q.id, {
+                    onSuccess: () => toast({ title: 'Moved to draft', variant: 'success' }),
+                    onError: fail('Could not move it to draft'),
                   })
                 }
-                message="Questions used in an exam cannot be deleted; archive them instead."
-              />
-            ) : null
-          }
-        />
-        {q.data && (
-          <Pagination
-            page={q.data.pagination.page}
-            totalPages={q.data.pagination.totalPages}
-            total={q.data.pagination.total}
-            pageSize={q.data.pagination.pageSize}
-            onPageChange={setPage}
-          />
-        )}
-      </Card>
+                data-testid="questions-card-draft-btn"
+              >
+                Move to draft
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={publish.isPending}
+                onClick={() =>
+                  publish.mutate(q.id, {
+                    onSuccess: () => toast({ title: 'Question published', variant: 'success' }),
+                    onError: fail('Could not publish the question'),
+                  })
+                }
+                data-testid="questions-card-publish-btn"
+              >
+                Publish
+              </Button>
+            ))}
+          {perms.can('question.delete') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              leftIcon={<Icon name="trash" size={14} />}
+              onClick={() => setConfirm(true)}
+              data-testid="questions-card-delete-btn"
+            >
+              Delete
+            </Button>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+export default function QuestionBankPage() {
+  const base = useAreaBase();
+  const perms = usePermissions();
+  const tree = useCatalogTree();
+  const [params, setParams] = useSearchParams();
+  const courseId = params.get('course') ?? '';
+  const subjectId = params.get('subject') ?? '';
+  const difficulty = (params.get('difficulty') ?? '') as Difficulty | '';
+  const set = (k: string, v: string) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set(k, v);
+    else next.delete(k);
+    if (k === 'course') {
+      next.delete('subject');
+      next.delete('difficulty');
+    }
+    setParams(next);
+  };
+  const course = tree.data?.courses.find((c) => c.id === courseId);
+  const subjects = (tree.data?.subjects ?? []).filter((s) => s.courseId === courseId);
+  const questions = useQuestions(
+    {
+      page: 1,
+      pageSize: 100,
+      courseId,
+      ...(subjectId ? { subjectId } : {}),
+      ...(difficulty ? { difficulty } : {}),
+      sort: 'createdAt',
+      order: 'desc',
+    },
+    Boolean(course),
+  );
+
+  const actions = (
+    <>
+      {perms.can('question.create') && (
+        <Link
+          to={`${base}/questions/import${courseId ? `?course=${courseId}` : ''}`}
+          className={cn(btnLink, 'bg-bg text-ink')}
+          data-testid="questions-import-btn"
+        >
+          <Icon name="file" size={16} />
+          Import CSV
+        </Link>
+      )}
+      {perms.can('question.create') && (
+        <Link
+          to={`${base}/questions/new${subjectId || subjects[0] ? `?subject=${subjectId || subjects[0]!.id}` : ''}`}
+          className={cn(btnLink, 'bg-primary text-on-primary')}
+          data-testid="questions-new-btn"
+        >
+          <Icon name="plus" size={16} />
+          New question
+        </Link>
+      )}
     </>
+  );
+
+  if (!course) {
+    const statsOf = (cid: string) => {
+      const ss = (tree.data?.subjects ?? []).filter((s) => s.courseId === cid);
+      const sum = (k: 'published' | 'draft' | 'easy' | 'medium' | 'hard') =>
+        ss.reduce((a, s) => a + (s.questionStats?.[k] ?? 0), 0);
+      return {
+        subjects: ss.length,
+        total: ss.reduce((a, s) => a + s.questionCount, 0),
+        published: sum('published'),
+        draft: sum('draft'),
+        easy: sum('easy'),
+        medium: sum('medium'),
+        hard: sum('hard'),
+      };
+    };
+    return (
+      <PageRoot
+        testId="page-questions"
+        ready={!tree.isPending}
+        className="flex flex-col gap-[18px]"
+      >
+        <PageHeader
+          breadcrumb={[{ label: 'Question Bank' }]}
+          title="Question Bank"
+          description="Start with a course. Each card shows how many questions it has and how hard they are."
+          actions={actions}
+        />
+        {tree.isError ? (
+          <p className="text-danger" data-testid="questions-error">
+            {errorText(tree.error)}
+          </p>
+        ) : (
+          <section
+            className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]"
+            data-testid="questions-course-cards"
+          >
+            {(tree.data?.courses ?? []).map((c, i) => {
+              const st = statsOf(c.id);
+              const w = (n: number) => (st.total ? `${(n / st.total) * 100}%` : '0%');
+              const tone = TONES[i % TONES.length]!;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => set('course', c.id)}
+                  className="flex min-h-[220px] flex-col overflow-hidden rounded-card border border-border bg-surface text-left text-ink hover:border-accent"
+                  data-testid="questions-course-card"
+                  data-entity-id={c.id}
+                  data-entity-code={c.code}
+                >
+                  <div
+                    className={cn(
+                      'flex min-h-[100px] w-full flex-col items-start justify-between gap-2.5 p-[18px]',
+                      COVER[tone],
+                    )}
+                  >
+                    <span className="rounded-lg bg-surface px-2 py-[3px] text-[11px] font-extrabold tracking-[.06em] text-ink">
+                      {c.code}
+                    </span>
+                    <span className="font-display text-[28px] font-semibold">{c.name}</span>
+                  </div>
+                  <div className="flex w-full flex-col gap-2 px-4 py-3.5">
+                    <b className="num text-2xl">{st.total} questions</b>
+                    <span className="text-xs font-semibold text-muted">
+                      {st.published} published · {st.draft} draft · {st.subjects} subjects
+                    </span>
+                    <div
+                      className="flex h-2 overflow-hidden rounded-full bg-row"
+                      role="img"
+                      aria-label={`${st.easy} easy, ${st.medium} medium, ${st.hard} hard`}
+                    >
+                      <i className="block bg-mint-ink" style={{ width: w(st.easy) }} />
+                      <i className="block bg-butter-ink" style={{ width: w(st.medium) }} />
+                      <i className="block bg-danger" style={{ width: w(st.hard) }} />
+                    </div>
+                    <span className="text-xs font-semibold text-muted">
+                      {st.easy} easy · {st.medium} medium · {st.hard} hard
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+            {perms.can('question.create') && (
+              <Link
+                to={`${base}/questions/new`}
+                className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-dash bg-surface-2 p-5 text-center text-accent hover:no-underline"
+                data-testid="questions-new-card"
+              >
+                <span
+                  className="grid h-11 w-11 place-items-center rounded-[14px] bg-lav text-2xl text-lav-ink"
+                  aria-hidden="true"
+                >
+                  +
+                </span>
+                <b>New question</b>
+                <span className="text-xs font-semibold text-muted">
+                  Opens the full question form
+                </span>
+              </Link>
+            )}
+            {!tree.isPending && !tree.data?.courses.length && (
+              <p className="text-muted" data-testid="questions-no-courses">
+                Add a course and its subjects first, then questions.{' '}
+                <Link to={`${base}/courses`}>Open Courses</Link>
+              </p>
+            )}
+          </section>
+        )}
+      </PageRoot>
+    );
+  }
+
+  const all = subjects.reduce((a, s) => a + s.questionCount, 0);
+  const list = questions.data?.items ?? [];
+  return (
+    <PageRoot
+      testId="page-questions"
+      ready={!questions.isPending}
+      className="flex flex-col gap-[18px]"
+    >
+      <PageHeader
+        breadcrumb={[{ label: 'Question Bank', to: `${base}/questions` }, { label: course.name }]}
+        title={`${course.name} questions`}
+        description={`${all} questions · ${subjects.reduce((a, s) => a + (s.questionStats?.published ?? 0), 0)} published`}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => set('course', '')}
+              data-testid="questions-all-courses-btn"
+            >
+              All courses
+            </Button>
+            {actions}
+          </>
+        }
+      />
+      <div
+        role="tablist"
+        aria-label="Subject"
+        className="flex max-w-full flex-wrap gap-1.5 self-start rounded-full bg-surface p-[5px]"
+      >
+        {[
+          { id: '', name: 'All subjects', n: all },
+          ...subjects.map((s) => ({ id: s.id, name: s.name, n: s.questionCount })),
+        ].map((t) => (
+          <button
+            key={t.id || 'all'}
+            type="button"
+            role="tab"
+            aria-selected={subjectId === t.id}
+            onClick={() => set('subject', t.id)}
+            className={cn(
+              'min-h-[38px] rounded-full px-4 font-bold',
+              subjectId === t.id ? 'bg-primary text-on-primary' : 'text-muted',
+            )}
+            data-testid="questions-subject-tab"
+            data-value={t.id || 'all'}
+          >
+            {t.name}
+            <span className="num ml-1 opacity-75">{t.n}</span>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by difficulty">
+        {(['easy', 'medium', 'hard'] as const).map((dv) => (
+          <button
+            key={dv}
+            type="button"
+            aria-pressed={difficulty === dv}
+            onClick={() => set('difficulty', difficulty === dv ? '' : dv)}
+            className={cn(
+              'min-h-9 rounded-full border-[1.5px] px-3.5 font-bold',
+              difficulty === dv
+                ? 'border-transparent bg-primary text-on-primary'
+                : 'border-border bg-surface text-ink',
+            )}
+            data-testid="questions-filter-diff-chip"
+            data-value={dv}
+          >
+            {cap(dv)}
+          </button>
+        ))}
+      </div>
+      <section className="flex flex-col gap-3" data-testid="questions-card-list">
+        {questions.isError ? (
+          <p className="text-danger">{errorText(questions.error)}</p>
+        ) : questions.isPending ? (
+          <p className="text-muted">Loading questions…</p>
+        ) : list.length ? (
+          list.map((q, i) => <QuestionCard key={q.id} q={q} n={i + 1} base={base} />)
+        ) : (
+          <div
+            className="flex flex-col items-center gap-2 rounded-card bg-surface py-7 text-center text-muted"
+            data-testid="questions-empty"
+          >
+            <b className="text-ink">No questions here yet</b>
+            {perms.can('question.create') && (
+              <Link to={`${base}/questions/new`}>Add the first one</Link>
+            )}
+          </div>
+        )}
+      </section>
+    </PageRoot>
   );
 }

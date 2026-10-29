@@ -3,6 +3,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { validateQuestion, type QuestionDraft } from '@/features/assessment/questionRules';
+import { checkQuestionCsv } from '@/features/assessment/questionCsv';
 import { fakeSession, resetFakeSupabase } from '../helpers/fakeSupabase';
 import { PERMS, meAs, mockApi, renderRoute, type Handler } from '../helpers/app';
 
@@ -125,17 +126,59 @@ describe('question rules', () => {
 });
 
 describe('question bank', () => {
-  it('lists questions and creates a published question with the chosen answer', async () => {
+  const catalog = {
+    courses: [{ id: 'c1', code: 'BTECH', name: 'B.Tech', status: 'active' }],
+    subjects: [
+      {
+        id: 's1',
+        code: 'EE201',
+        name: 'Electrical Machines',
+        status: 'active',
+        courseId: 'c1',
+        questionCount: 3,
+        questionStats: { published: 2, draft: 1, easy: 1, medium: 1, hard: 1 },
+      },
+    ],
+    topics: [{ id: 't1', name: 'Motors', subjectId: 's1', position: 1, questionCount: 0 }],
+    truncated: false,
+  };
+
+  it('starts with course cards, then subject tabs and question cards for the chosen course', async () => {
     setup('TEACHER', {
-      'GET /api/v1/questions': () => ({ data: page([Q('q1', 'What is Ohm’s law about?')]) }),
+      'GET /api/v1/catalog/tree': () => ({ data: catalog }),
+      'GET /api/v1/questions': () => ({
+        data: page([Q('q1', 'What is Ohm’s law about?', { status: 'draft' })]),
+      }),
+      'POST /api/v1/questions/q1/publish': () => ({ data: Q('q1', 'x') }),
+    });
+    renderRoute('/teacher/questions');
+    const card = await screen.findByTestId('questions-course-card');
+    expect(card).toHaveTextContent('3 questions');
+    expect(card).toHaveTextContent('2 published · 1 draft · 1 subjects');
+    expect(screen.getByTestId('questions-new-btn')).toHaveAttribute(
+      'href',
+      '/teacher/questions/new',
+    );
+    await userEvent.click(card);
+    expect(await screen.findByText('What is Ohm’s law about?')).toBeInTheDocument();
+    expect(called('GET /api/v1/questions').at(-1)!.query).toMatchObject({ courseId: 'c1' });
+    expect(screen.getAllByTestId('questions-subject-tab').map((t) => t.dataset.value)).toEqual([
+      'all',
+      's1',
+    ]);
+    await userEvent.click(screen.getByTestId('questions-card-publish-btn'));
+    await waitFor(() => expect(called('POST /api/v1/questions/q1/publish')).toHaveLength(1));
+  });
+
+  it('the new-question page creates a published question with the chosen answer', async () => {
+    setup('TEACHER', {
+      'GET /api/v1/catalog/tree': () => ({ data: catalog }),
       'POST /api/v1/questions': ({ body }) => ({
         status: 201,
         data: { ...Q('q2', body.questionText), options: [], correctOptionId: null },
       }),
     });
-    renderRoute('/teacher/questions');
-    expect(await screen.findByText('What is Ohm’s law about?')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'New question' }));
+    renderRoute('/teacher/questions/new?subject=s1');
     const dialog = await screen.findByRole('region', { name: 'New question' });
     await waitFor(() => expect(within(dialog).getByLabelText(/Subject/)).toHaveValue('s1'));
     await userEvent.type(within(dialog).getByLabelText(/^Question/), 'Unit of resistance?');
@@ -146,12 +189,42 @@ describe('question bank', () => {
     await waitFor(() => expect(called('POST /api/v1/questions')).toHaveLength(1));
     expect(called('POST /api/v1/questions')[0]!.body).toMatchObject({
       subjectId: 's1',
-      questionType: 'multiple_choice',
       questionText: 'Unit of resistance?',
       options: ['Volt', 'Ohm', 'Ampere', 'Watt'],
       correctOption: 1,
       publish: true,
     });
+  });
+
+  it('a question CSV is checked line by line before import', () => {
+    const csv =
+      'subject_code,topic,question,option_a,option_b,option_c,correct,difficulty,marks,negative_marks\n' +
+      'ee201,Motors,Slip at standstill?,0,1,2,B,hard,4,1\n' +
+      'XX9,,Bad subject?,a,b,,A,easy,1,0\n' +
+      'EE201,,Only one option?,a,,,A,easy,1,0\n' +
+      'EE201,,True or false?,True,False,,B,,,\n';
+    const { rows, missingColumns } = checkQuestionCsv(csv, catalog as never);
+    expect(missingColumns).toEqual([]);
+    expect(rows.map((r) => [r.row, Boolean(r.body)])).toEqual([
+      [2, true],
+      [3, false],
+      [4, false],
+      [5, true],
+    ]);
+    expect(rows[0]!.body).toMatchObject({
+      subjectId: 's1',
+      topicId: 't1',
+      correctOption: 1,
+      difficulty: 'hard',
+    });
+    expect(rows[1]!.problems[0]).toContain('subject XX9 not found');
+    expect(rows[2]!.problems).toContain('at least 2 options');
+    expect(rows[3]!.body).toMatchObject({
+      questionType: 'true_false',
+      difficulty: 'medium',
+      marks: 1,
+    });
+    expect(checkQuestionCsv('a,b\n1,2', catalog as never).missingColumns).toContain('subject_code');
   });
 
   it('students cannot open the question bank', async () => {
