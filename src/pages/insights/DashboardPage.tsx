@@ -345,7 +345,10 @@ function Attention({ d, base }: { d: Overview; base: string }) {
         icon: 'file',
         body: (
           <>
-            <Link to={`${base}/exams/${x.id}`}>{x.name}</Link> is a draft with {miss.join(', ')}
+            <Link to={`${base}/exams/${x.id}`} data-testid="dashboard-attention-exam-link">
+              {x.name}
+            </Link>{' '}
+            is a draft with {miss.join(', ')}
           </>
         ),
       });
@@ -358,7 +361,9 @@ function Attention({ d, base }: { d: Overview; base: string }) {
       body: (
         <>
           {plural(s.notInvited, 'student has', 'students have')} not been invited.{' '}
-          <Link to={`${base}/students`}>Invite</Link>
+          <Link to={`${base}/students`} data-testid="dashboard-attention-invite-link">
+            Invite
+          </Link>
         </>
       ),
     });
@@ -369,7 +374,9 @@ function Attention({ d, base }: { d: Overview; base: string }) {
       body: (
         <>
           {plural(s.noBatch, 'student has', 'students have')} no batch and won't receive exams.{' '}
-          <Link to={`${base}/students`}>Fix</Link>
+          <Link to={`${base}/students`} data-testid="dashboard-attention-fix-link">
+            Fix
+          </Link>
         </>
       ),
     });
@@ -380,7 +387,9 @@ function Attention({ d, base }: { d: Overview; base: string }) {
       body: (
         <>
           {plural(d.flow.results.belowPass, 'student')} scored below the pass mark.{' '}
-          <Link to={`${base}/results`}>See who</Link>
+          <Link to={`${base}/results`} data-testid="dashboard-attention-see-who-link">
+            See who
+          </Link>
         </>
       ),
     });
@@ -448,7 +457,11 @@ function Today({ d, base }: { d: Overview; base: string }) {
         >
           <span className="num min-w-16 font-extrabold">{when(x.startAt!)}</span>
           <span className="min-w-0 flex-1">
-            <Link to={`${base}/exams/${x.id}`} className="font-bold text-ink">
+            <Link
+              to={`${base}/exams/${x.id}`}
+              className="font-bold text-ink"
+              data-testid="dashboard-today-exam-link"
+            >
               {x.name} opens
             </Link>
             <span className="block text-xs text-muted">
@@ -461,7 +474,7 @@ function Today({ d, base }: { d: Overview; base: string }) {
         <div
           key={`c-${x.id}`}
           className={row}
-          data-testid="dashboard-today-row"
+          data-testid="dashboard-today-closing-row"
           data-entity-id={x.id}
         >
           <span className="num min-w-16 font-extrabold">{when(x.endAt!)}</span>
@@ -706,7 +719,11 @@ export default function DashboardPage() {
                           className="[&>td]:bg-row [&>td]:px-3 [&>td]:py-[11px] [&>td:first-child]:rounded-l-[14px] [&>td:last-child]:rounded-r-[14px]"
                         >
                           <td>
-                            <Link to={`${base}/exams/${x.id}`} className="font-bold">
+                            <Link
+                              to={`${base}/exams/${x.id}`}
+                              className="font-bold"
+                              data-testid="dashboard-exam-row-link"
+                            >
                               {x.name}
                             </Link>
                             <span className="block text-xs text-muted">

@@ -3,6 +3,7 @@
 //      Buttons follow the caller's permissions (UX only); the API and RLS enforce every rule.
 // DEPENDS ON: features/teachers/*, shared table/form/dialog components.
 
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -34,7 +35,8 @@ const STATUS_OPTIONS = [
 ];
 
 /** Add form (above the list) or edit form (under the teacher's row). */
-function TeacherForm({
+/** Add form (its own page: /org/teachers/new) or edit form (under the teacher's row). */
+export function TeacherForm({
   open,
   teacher,
   onClose,
@@ -186,13 +188,13 @@ function TeacherForm({
 }
 
 export default function TeachersPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const perms = usePermissions();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'fullName', order: 'asc' });
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [scoping, setScoping] = useState<Teacher | null>(null);
   const [removing, setRemoving] = useState<Teacher | null>(null);
@@ -213,12 +215,10 @@ export default function TeachersPage() {
   };
   // One inline form, scope panel or confirmation at a time.
   const show = (next: {
-    creating?: boolean;
     editing?: Teacher;
     scoping?: Teacher;
     removing?: Teacher;
   }) => {
-    setCreating(Boolean(next.creating));
     setEditing(next.editing ?? null);
     setScoping(next.scoping ?? null);
     setRemoving(next.removing ?? null);
@@ -279,7 +279,7 @@ export default function TeachersPage() {
           <Can permission="teacher.create">
             <Button
               leftIcon={<Icon name="plus" size={16} />}
-              onClick={() => show({ creating: true })}
+              onClick={() => navigate('/org/teachers/new')}
               data-testid="teachers-add-btn"
             >
               Add teacher
@@ -287,7 +287,6 @@ export default function TeachersPage() {
           </Can>
         }
       />
-      <TeacherForm open={creating} teacher={null} onClose={closeForm} className="mb-4" />
       <Card padded={false}>
         <FilterBar
           canClear={Boolean(search || status)}

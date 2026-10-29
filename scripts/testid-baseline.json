@@ -1,8 +1,5 @@
 {
   "src/features/assessment/ExamForm.tsx": 14,
-  "src/pages/academic/CoursesPage.tsx": 2,
-  "src/pages/academic/SubjectsPage.tsx": 2,
-  "src/pages/academic/TopicsPage.tsx": 1,
   "src/pages/app/AppHomePage.tsx": 1,
   "src/pages/auth/ForgotPasswordPage.tsx": 3,
   "src/pages/auth/ResetPasswordPage.tsx": 5,
@@ -10,7 +7,6 @@
   "src/pages/exams/AssignmentsPage.tsx": 1,
   "src/pages/exams/ExamDetailPage.tsx": 14,
   "src/pages/exams/ExamsPage.tsx": 1,
-  "src/pages/insights/DashboardPage.tsx": 2,
   "src/pages/insights/LeaderboardPage.tsx": 2,
   "src/pages/insights/ReportsPage.tsx": 1,
   "src/pages/insights/ResultsPage.tsx": 2,

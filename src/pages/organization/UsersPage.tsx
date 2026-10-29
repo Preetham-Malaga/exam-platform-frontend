@@ -5,7 +5,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -39,7 +39,8 @@ const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
 /** Shown above the list. */
-function InviteAdminForm({
+/** Invite an admin (its own page: /org/admins/new). */
+export function InviteAdminForm({
   open,
   onClose,
   className,
@@ -131,6 +132,7 @@ function InviteAdminForm({
 }
 
 export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean }) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { me } = useAuth();
   const perms = usePermissions();
@@ -138,7 +140,6 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
   const [role, setRole] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'fullName', order: 'asc' });
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState<{ user: OrgUser; role: AssignableRole } | null>(
     null,
   );
@@ -160,12 +161,10 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
   const changeStatus = useChangeStatus();
   // One inline form or confirmation at a time.
   const askRole = (user: OrgUser, r: AssignableRole) => {
-    setInviteOpen(false);
     setPendingStatus(null);
     setPendingRole({ user, role: r });
   };
   const askStatus = (user: OrgUser, status: 'active' | 'suspended') => {
-    setInviteOpen(false);
     setPendingRole(null);
     setPendingStatus({ user, status });
   };
@@ -269,11 +268,7 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
           <Can role="ORGANIZATION_OWNER">
             <Button
               leftIcon={<Icon name="plus" size={16} />}
-              onClick={() => {
-                setPendingRole(null);
-                setPendingStatus(null);
-                setInviteOpen(true);
-              }}
+              onClick={() => navigate('/org/admins/new')}
               data-testid="users-invite-admin-btn"
             >
               Invite admin
@@ -285,7 +280,6 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
         {nav('/org/users', 'All users', 'users-view-all-link')}
         {nav('/org/admins', 'Admins', 'users-view-admins-link')}
       </div>
-      <InviteAdminForm open={inviteOpen} onClose={() => setInviteOpen(false)} className="mb-4" />
       <Card padded={false}>
         <FilterBar
           canClear={Boolean(search || role)}

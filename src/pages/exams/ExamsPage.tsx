@@ -31,8 +31,8 @@ const STATUS_OPTIONS = [
   { value: 'unpublished', label: 'Unpublished' },
 ];
 
-/** Shown above the list; after creating, the exam page opens to add questions. */
-function NewExamForm({
+/** The new-exam form (its own page: /org/exams/new); after creating, the exam page opens to add questions. */
+export function NewExamForm({
   open,
   onClose,
   className,
@@ -103,7 +103,6 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'createdAt', order: 'desc' });
-  const [creating, setCreating] = useState(false);
   const effective = publishedOnly ? 'published' : status;
   const q = useExams({
     page,
@@ -132,7 +131,7 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
           <Can permission="exam.create">
             <Button
               leftIcon={<Icon name="plus" size={16} />}
-              onClick={() => setCreating(true)}
+              onClick={() => navigate(`${base}/exams/new`)}
               data-testid="exams-add-btn"
             >
               New exam
@@ -140,7 +139,6 @@ export default function ExamsPage({ publishedOnly = false }: { publishedOnly?: b
           </Can>
         }
       />
-      <NewExamForm open={creating} onClose={() => setCreating(false)} className="mb-4" />
       <Card padded={false}>
         <FilterBar
           canClear={Boolean(search || status)}

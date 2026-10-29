@@ -3,6 +3,8 @@
 // WHY: Guide Part 18 step 12. Teachers see only their scope (RLS); students cannot open this page or its API.
 // DEPENDS ON: features/assessment/*, features/academic/hooks.ts, shared table/form/dialog components.
 
+import { useNavigate } from 'react-router-dom';
+import { useAreaBase } from '@/features/assessment/area';
 import { useMemo, useState } from 'react';
 import { useToast } from '@/components/feedback/Toast';
 import { Select } from '@/components/forms/Form';
@@ -20,7 +22,6 @@ import { useSubjects, useTopics } from '@/features/academic/hooks';
 import { errorText } from '@/features/academic/ui';
 import { DIFFICULTY_TONE, TYPE_LABEL } from '@/features/assessment/format';
 import { useAssessmentMutation, useQuestions } from '@/features/assessment/hooks';
-import { QuestionEditor } from '@/features/assessment/QuestionEditor';
 import { Can } from '@/features/auth/Can';
 import { questionService } from '@/services/assessmentService';
 import type { Difficulty, QuestionStatus, QuestionSummary } from '@/types/assessment';
@@ -28,6 +29,8 @@ import type { Difficulty, QuestionStatus, QuestionSummary } from '@/types/assess
 const PAGE_SIZE = 10;
 
 export default function QuestionBankPage() {
+  const navigate = useNavigate();
+  const base = useAreaBase();
   const { toast } = useToast();
   const perms = usePermissions();
   const [search, setSearch] = useState('');
@@ -37,7 +40,6 @@ export default function QuestionBankPage() {
   const [difficulty, setDifficulty] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'createdAt', order: 'desc' });
-  const [editor, setEditor] = useState<{ id: string | null } | null>(null);
   const [deleting, setDeleting] = useState<QuestionSummary | null>(null);
 
   const subjects = useSubjects({ page: 1, pageSize: 100, sort: 'name', status: 'active' });
@@ -69,13 +71,7 @@ export default function QuestionBankPage() {
   };
   const fail = (title: string) => (e: unknown) =>
     toast({ title, description: errorText(e), variant: 'error' });
-  // One inline editor or confirmation at a time.
-  const openEditor = (id: string | null) => {
-    setDeleting(null);
-    setEditor({ id });
-  };
   const askDelete = (row: QuestionSummary) => {
-    setEditor(null);
     setDeleting(row);
   };
   const defaultSubject = subject || subjectOptions[0]?.value || '';
@@ -86,7 +82,7 @@ export default function QuestionBankPage() {
       items.push({
         label: 'Edit',
         testId: 'row-actions-edit-menu-item',
-        onSelect: () => openEditor(row.id),
+        onSelect: () => navigate(`${base}/questions/${row.id}/edit`),
       });
     if (row.status !== 'published' && perms.can('question.publish'))
       items.push({
@@ -143,20 +139,17 @@ export default function QuestionBankPage() {
               leftIcon={<Icon name="plus" size={16} />}
               disabled={!subjectOptions.length}
               title={subjectOptions.length ? undefined : 'No subject available'}
-              onClick={() => openEditor(null)}
+              onClick={() =>
+                navigate(
+                  `${base}/questions/new${defaultSubject ? `?subject=${defaultSubject}` : ''}`,
+                )
+              }
               data-testid="questions-add-btn"
             >
               New question
             </Button>
           </Can>
         }
-      />
-      <QuestionEditor
-        open={editor?.id === null}
-        questionId={null}
-        defaultSubject={defaultSubject}
-        onClose={() => setEditor(null)}
-        className="mb-4"
       />
       <Card padded={false}>
         <FilterBar
@@ -298,14 +291,7 @@ export default function QuestionBankPage() {
           ]}
           testId="question"
           expandedRow={(r) =>
-            editor?.id === r.id ? (
-              <QuestionEditor
-                open
-                questionId={r.id}
-                defaultSubject={defaultSubject}
-                onClose={() => setEditor(null)}
-              />
-            ) : deleting?.id === r.id ? (
+            deleting?.id === r.id ? (
               <InlineConfirm
                 open
                 testId="question-delete"

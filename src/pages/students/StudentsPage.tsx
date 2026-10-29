@@ -3,6 +3,7 @@
 //      permissions (UX only); the API and RLS enforce every rule.
 // DEPENDS ON: features/students/*, features/academic (unit tree), shared table/form/dialog components.
 
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -38,7 +39,8 @@ const STATUS_OPTIONS = [
 type Option = { value: string; label: string };
 
 /** Add form (above the list) or edit form (under the student's row). */
-function StudentForm({
+/** Add form (its own page: /org/students/new) or edit form (under the student's row). */
+export function StudentForm({
   open,
   student,
   units,
@@ -205,6 +207,7 @@ function StudentForm({
 }
 
 export default function StudentsPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const perms = usePermissions();
   const [search, setSearch] = useState('');
@@ -212,7 +215,6 @@ export default function StudentsPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'rollNumber', order: 'asc' });
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [removing, setRemoving] = useState<Student | null>(null);
   const [importing, setImporting] = useState(false);
@@ -236,12 +238,10 @@ export default function StudentsPage() {
   };
   // One inline form or confirmation at a time.
   const show = (next: {
-    creating?: boolean;
     importing?: boolean;
     editing?: Student;
     removing?: Student;
   }) => {
-    setCreating(Boolean(next.creating));
     setImporting(Boolean(next.importing));
     setEditing(next.editing ?? null);
     setRemoving(next.removing ?? null);
@@ -307,7 +307,7 @@ export default function StudentsPage() {
             <Can permission="student.create">
               <Button
                 leftIcon={<Icon name="plus" size={16} />}
-                onClick={() => show({ creating: true })}
+                onClick={() => navigate('/org/students/new')}
                 data-testid="students-add-btn"
               >
                 Add student
@@ -315,13 +315,6 @@ export default function StudentsPage() {
             </Can>
           </>
         }
-      />
-      <StudentForm
-        open={creating}
-        student={null}
-        units={units}
-        onClose={closeForm}
-        className="mb-4"
       />
       <ImportPanel open={importing} onClose={closeForm} className="mb-4" />
       <Card padded={false}>
