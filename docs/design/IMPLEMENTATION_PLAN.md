@@ -65,7 +65,7 @@ Tests: Vitest + Testing Library; Playwright e2e with page objects (`tests/e2e`).
 | --- | ----------------------------------------------------------------------------------- | ------ |
 | 1   | Theme tokens, layout shell, grouped menu                                            | ☑      |
 | 2   | Auth: remove Google, fix organization creation, roles and invites, pending approval | ☑      |
-| 3   | Courses (list + course/subject/topic screens)                                       | ☐      |
+| 3   | Courses (list + course/subject/topic screens)                                       | ☑      |
 | 4   | Question Bank                                                                       | ☐      |
 | 5   | Exams                                                                               | ☐      |
 | 6   | Dashboard + summary endpoint                                                        | ☐      |
@@ -84,3 +84,4 @@ Each new field or endpoint is added with a reversible migration and listed here 
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | 1    | Server no longer crashes when the database connection drops; DB connections kept 10 min with keep-alive and 30 s query limits; login check cached 30 s                                                                                                                         | none (backend branch `fix/db-timeouts-auth-cache`)                                                                    |
 | 2    | Sign-up errors keep their real Supabase reason (`EMAIL_RATE_LIMITED`, `EMAIL_INVALID` …) on the right field; error envelope `field`; sign-up stores city, state, mobile, heard-from, terms; organizations wait for platform approval; `/platform/organizations` list + approve | `043_organization_approval.sql` (undo: `supabase/rollbacks/043_organization_approval.down.sql`) — **not applied yet** |
+| 3    | `GET /catalog/tree` (courses, subjects, topics, question counts in one request); `details` on courses, subjects, topics for the prototype form fields                                                                                                                          | `044_catalog_details.sql` (undo: `supabase/rollbacks/044_catalog_details.down.sql`) — **not applied yet**             |

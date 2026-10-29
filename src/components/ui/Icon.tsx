@@ -53,6 +53,17 @@ const PATHS = {
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
   video: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
   filter: 'M22 3H2l8 9.5V19l4 2v-8.5z',
+  chev: 'M9 6l6 6-6 6',
+  down: 'M6 9l6 6 6-6',
+  tree: 'M5 4h6M5 4v16M5 12h6M5 20h6M13 2h8v5h-8zM13 9.5h8v5h-8zM13 17h8v5h-8z',
+  copy: 'M8 8h12v12H8zM16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  download: 'M12 3v12M7 10l5 5 5-5M4 21h16',
+  play: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM10 8.5v7l6-3.5z',
+  folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  home: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  report: 'M6 3h12v18H6zM9 8h6M9 12h6M9 16h3',
 } as const;
 
 export type IconName = keyof typeof PATHS;

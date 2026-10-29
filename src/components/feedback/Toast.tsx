@@ -20,9 +20,16 @@ interface ToastItem {
   title: string;
   description?: string;
   variant: ToastVariant;
+  /** One action next to the message, e.g. Undo after a delete. */
+  action?: { label: string; onClick: () => void };
 }
 interface ToastApi {
-  toast: (t: { title: string; description?: string; variant?: ToastVariant }) => void;
+  toast: (t: {
+    title: string;
+    description?: string;
+    variant?: ToastVariant;
+    action?: { label: string; onClick: () => void };
+  }) => void;
 }
 
 const Ctx = createContext<ToastApi | null>(null);
@@ -45,11 +52,17 @@ export function ToastProvider({
   const next = useRef(1);
   const dismiss = useCallback((id: number) => setItems((l) => l.filter((t) => t.id !== id)), []);
   const toast = useCallback<ToastApi['toast']>(
-    ({ title, description, variant = 'info' }) => {
+    ({ title, description, variant = 'info', action }) => {
       const id = next.current++;
       setItems((l) => [
         ...l.slice(-3),
-        { id, title, ...(description ? { description } : {}), variant },
+        {
+          id,
+          title,
+          ...(description ? { description } : {}),
+          variant,
+          ...(action ? { action } : {}),
+        },
       ]);
       // Never shorter than 4 s, so people (and automated tests) can read and assert it before it goes.
       setTimeout(() => dismiss(id), Math.max(MIN_TOAST_MS, durationMs));
@@ -88,6 +101,19 @@ export function ToastProvider({
                 </p>
               )}
             </div>
+            {t.action && (
+              <button
+                type="button"
+                className="font-extrabold underline"
+                data-testid="toast-undo-btn"
+                onClick={() => {
+                  t.action!.onClick();
+                  dismiss(t.id);
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               type="button"
               aria-label="Dismiss notification"

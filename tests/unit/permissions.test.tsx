@@ -100,8 +100,7 @@ describe('navigation', () => {
     );
     expect(labels(filterNavigation(navigationFor(asMe(teacher)), (p) => can(teacher, p)))).toEqual([
       'Dashboard',
-      'Subjects',
-      'Topics',
+      'Courses',
       'Question Bank',
       'Exams',
       'Results',
@@ -120,7 +119,7 @@ describe('navigation', () => {
   });
   it('a user with a limited permission set sees only those items', () => {
     const only = (p: string) => ['course.read', 'subject.read'].includes(p);
-    expect(labels(filterNavigation(orgNavigation, only as never))).toEqual(['Courses', 'Subjects']);
+    expect(labels(filterNavigation(orgNavigation, only as never))).toEqual(['Courses']);
   });
 });
 

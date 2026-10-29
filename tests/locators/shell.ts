@@ -37,8 +37,6 @@ export const NavGroups = {
 export const NavLinks = {
   dashboard: tid('nav-dashboard-link'),
   courses: tid('nav-syllabus-link'),
-  subjects: tid('nav-subjects-link'),
-  topics: tid('nav-topics-link'),
   questions: tid('nav-questions-link'),
   exams: tid('nav-exams-link'),
   students: tid('nav-students-link'),

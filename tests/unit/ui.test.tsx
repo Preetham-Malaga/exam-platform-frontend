@@ -486,7 +486,7 @@ describe('navigation filtering (UX only; the API and database enforce access)', 
     const can = (p: string) => ['course.read', 'subject.read'].includes(p);
     const out = filterNavigation(orgNavigation, can);
     const labels = out.flatMap((s) => s.items.map((i) => i.label));
-    expect(labels).toEqual(['Courses', 'Subjects']);
+    expect(labels).toEqual(['Courses']);
     expect(out.every((s) => s.items.length > 0)).toBe(true);
   });
   it('items without a permission requirement are always kept', () => {

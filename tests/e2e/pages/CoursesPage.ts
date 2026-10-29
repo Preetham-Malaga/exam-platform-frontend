@@ -1,6 +1,6 @@
-// Page object for /org/courses. Uses only tests/locators/courses.ts. Add / edit / delete all happen in the page.
+// Page object for /org/courses (the Courses tree) and the course form page. Uses only tests/locators/courses.ts.
 import { expect, type Page } from '@playwright/test';
-import { CoursesPage as C } from '../../locators/courses';
+import { CourseForm as F, CoursesPage as C } from '../../locators/courses';
 
 export class CoursesPage {
   readonly page: Page;
@@ -8,31 +8,26 @@ export class CoursesPage {
     this.page = page;
   }
 
-  readonly form = () => this.page.locator(C.form);
-  readonly row = (code: string) => this.page.locator(C.rowByCode(code));
+  readonly row = (code: string) => this.page.locator(C.courseRowByCode(code));
 
   async goto(): Promise<void> {
     await this.page.goto('/org/courses');
-    await expect(this.page.locator(`${C.table}, ${C.empty}`).first()).toBeVisible();
+    await expect(this.page.locator(C.root)).toHaveAttribute('data-ready', 'true');
   }
 
+  /** Opens the course form page, fills the required fields and saves; lands back on the tree. */
   async add(name: string, code: string): Promise<void> {
-    await this.page.locator(C.addBtn).click();
-    await expect(this.form()).toBeVisible();
-    await this.page.locator(C.nameInput).fill(name);
-    await this.page.locator(C.codeInput).fill(code);
-    await this.page.locator(C.saveBtn).click();
+    await this.page.locator(C.addCourseBtn).click();
+    await expect(this.page.locator(F.root)).toHaveAttribute('data-ready', 'true');
+    await this.page.locator(F.nameInput).fill(name);
+    await this.page.locator(F.codeInput).fill(code);
+    await this.page.locator(F.courseTypeSelect).selectOption('Degree');
+    await this.page.locator(F.durationValueInput).fill('4');
+    await this.page.locator(F.saveBtn).click();
   }
 
-  /** Opens the row's menu and asks to delete; the confirmation appears under the row. */
+  /** Asks to delete; the confirmation replaces the course's row. */
   async askDelete(code: string): Promise<void> {
-    const row = this.row(code);
-    await row.locator(C.rowActionsBtn).click();
-    await this.page.locator(C.rowDeleteMenuItem).click();
-  }
-
-  async rowExpanded(code: string) {
-    const id = await this.row(code).getAttribute('data-entity-id');
-    return this.page.locator(C.rowExpanded(id!));
+    await this.row(code).locator(C.courseDeleteBtn).click();
   }
 }

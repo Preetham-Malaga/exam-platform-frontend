@@ -3,6 +3,7 @@
 // DEPENDS ON: pages/*, app/layouts/*, features/auth/guards.tsx.
 
 import { Navigate, createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { ToCourses } from '@/features/academic/ToCourses';
 import { GuestOnly, RequirePermission, RequireAuth } from '@/features/auth/guards';
 
 const page = (load: () => Promise<{ default: React.ComponentType }>) => ({
@@ -19,15 +20,58 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
     ]
   : [];
 
-/** Subjects and topics: mounted under /org (owners, admins) and /teacher (teachers, read-only subjects). */
+/** Courses tree and its add/edit pages: mounted under /org (owners, admins) and /teacher (RLS narrows a teacher's view). */
 const catalogRoutes: RouteObject[] = [
   {
     element: <RequirePermission permission="subject.read" />,
-    children: [{ path: 'subjects', ...page(() => import('@/pages/academic/SubjectsPage')) }],
+    children: [
+      { path: 'courses', ...page(() => import('@/pages/academic/CoursesPage')) },
+      { path: 'subjects', element: <ToCourses /> },
+      { path: 'topics', element: <ToCourses /> },
+    ],
   },
   {
-    element: <RequirePermission permission="topic.read" />,
-    children: [{ path: 'topics', ...page(() => import('@/pages/academic/TopicsPage')) }],
+    element: <RequirePermission permission="course.create" />,
+    children: [{ path: 'courses/new', ...page(() => import('@/pages/academic/CourseFormPage')) }],
+  },
+  {
+    element: <RequirePermission permission="course.update" />,
+    children: [
+      { path: 'courses/:courseId/edit', ...page(() => import('@/pages/academic/CourseFormPage')) },
+    ],
+  },
+  {
+    element: <RequirePermission permission="subject.create" />,
+    children: [
+      {
+        path: 'courses/:courseId/subjects/new',
+        ...page(() => import('@/pages/academic/SubjectFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="subject.update" />,
+    children: [
+      {
+        path: 'subjects/:subjectId/edit',
+        ...page(() => import('@/pages/academic/SubjectFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="topic.create" />,
+    children: [
+      {
+        path: 'subjects/:subjectId/topics/new',
+        ...page(() => import('@/pages/academic/TopicFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="topic.update" />,
+    children: [
+      { path: 'topics/:topicId/edit', ...page(() => import('@/pages/academic/TopicFormPage')) },
+    ],
   },
 ];
 
@@ -116,21 +160,7 @@ export const routes: RouteObject[] = [
                   { path: 'admins', ...page(() => import('@/pages/organization/AdminsPage')) },
                 ],
               },
-              {
-                element: <RequirePermission permission="academic.manage" />,
-                children: [
-                  {
-                    path: 'academic',
-                    ...page(() => import('@/pages/academic/AcademicStructurePage')),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission permission="course.read" />,
-                children: [
-                  { path: 'courses', ...page(() => import('@/pages/academic/CoursesPage')) },
-                ],
-              },
+              { path: 'academic', element: <ToCourses /> },
               ...catalogRoutes,
               ...assessmentRoutes,
               {

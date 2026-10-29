@@ -47,23 +47,8 @@ export const orgNavigation: NavSection[] = [
         key: 'syllabus',
         label: 'Courses',
         to: '/org/courses',
-        icon: 'layers',
-        anyPermission: ['course.read'],
-      },
-      // Subjects and Topics move inside Courses in step 3; until then they keep their own pages.
-      {
-        key: 'subjects',
-        label: 'Subjects',
-        to: '/org/subjects',
-        icon: 'list',
-        anyPermission: ['subject.read'],
-      },
-      {
-        key: 'topics',
-        label: 'Topics',
-        to: '/org/topics',
-        icon: 'list',
-        anyPermission: ['topic.read'],
+        icon: 'tree',
+        anyPermission: ['course.read', 'subject.read'],
       },
       {
         key: 'questions',
@@ -174,18 +159,11 @@ export const teacherNavigation: NavSection[] = [
     title: 'Academics',
     items: [
       {
-        key: 'subjects',
-        label: 'Subjects',
-        to: '/teacher/subjects',
-        icon: 'book',
+        key: 'syllabus',
+        label: 'Courses',
+        to: '/teacher/courses',
+        icon: 'tree',
         anyPermission: ['subject.read'],
-      },
-      {
-        key: 'topics',
-        label: 'Topics',
-        to: '/teacher/topics',
-        icon: 'list',
-        anyPermission: ['topic.read'],
       },
       {
         key: 'questions',

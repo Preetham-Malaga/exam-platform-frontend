@@ -8,6 +8,7 @@ import type {
   AcademicLevel,
   AcademicUnit,
   CatalogListParams,
+  CatalogTree,
   Course,
   CourseBody,
   CourseList,
@@ -58,6 +59,10 @@ export const academicService = {
 
   // courses
   courses: (p: CatalogListParams) => api.get<CourseList>(`${P}/courses?${query(p)}`),
+  catalogTree: () => api.get<CatalogTree>(`${P}/catalog/tree`),
+  course: (id: string) => api.get<Course>(`${P}/courses/${id}`),
+  subject: (id: string) => api.get<Subject>(`${P}/subjects/${id}`),
+  topic: (id: string) => api.get<Topic>(`${P}/topics/${id}`),
   createCourse: (b: CourseBody) => api.post<Course>(`${P}/courses`, b),
   updateCourse: (id: string, b: Partial<CourseBody> & { status?: 'active' | 'inactive' }) =>
     api.patch<Course>(`${P}/courses/${id}`, b),

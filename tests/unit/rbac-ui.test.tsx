@@ -116,8 +116,7 @@ describe('the menu follows the role (UX only)', () => {
     const nav = await openNav();
     expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
       'Dashboard',
-      'Subjects',
-      'Topics',
+      'Courses',
       'Question Bank',
       'Exams',
       'Results',
