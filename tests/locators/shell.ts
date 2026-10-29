@@ -9,9 +9,11 @@ export const AppShell = {
   logoutBtn: tid('nav-logout-btn'),
   sidebarUserName: tid('sidebar-user-name'),
   pageHeader: tid('page-header'),
-  userPill: tid('header-user-pill'),
-  userName: tid('header-user-name'),
-  userEmail: tid('header-user-email'),
+  appearanceToggleBtn: tid('appearance-toggle-btn'),
+  /** data-value light | dark | system */
+  appearanceModeRadio: tid('appearance-mode-radio'),
+  /** data-value violet | ocean | forest | sunset */
+  appearanceThemeOption: tid('appearance-theme-option'),
   skipToContentLink: tid('skip-to-content-link'),
   breadcrumb: tid('breadcrumb'),
   breadcrumbLink: tid('breadcrumb-link'),
@@ -24,7 +26,6 @@ export const AppShell = {
 
 /** Menu groups (prototype NAV): nav-<group>-group-btn, aria-expanded; the current page's group is always open. */
 export const NavGroups = {
-  overview: tid('nav-overview-group-btn'),
   academics: tid('nav-academics-group-btn'),
   assessments: tid('nav-assessments-group-btn'),
   people: tid('nav-people-group-btn'),

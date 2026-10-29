@@ -7,6 +7,8 @@ import type { Paginated } from './api';
 export type ScopeType = 'subject' | 'course' | 'academic_unit';
 
 export interface Teacher {
+  /** Only on create: set when the record was saved but the invitation e-mail could not be sent. */
+  inviteError?: { code: string; message: string } | null;
   id: string;
   employeeCode: string;
   fullName: string;

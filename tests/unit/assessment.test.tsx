@@ -477,7 +477,7 @@ describe('insights and dashboard', () => {
     });
     renderRoute('/org/dashboard');
     expect(await screen.findByTestId('dashboard-tile-students-value')).toHaveTextContent('124');
-    expect(screen.getByTestId('dashboard-tile-pass-rate-value')).toHaveTextContent('83%');
+    expect(await screen.findByTestId('dashboard-tile-pass-rate-value')).toHaveTextContent('83%');
     expect(screen.getByTestId('dashboard-tile-avg-score-value')).toHaveTextContent('68.7%');
     expect(screen.getByTestId('dashboard-stage-questions-status')).toHaveTextContent(
       '4 drafts to review',
@@ -506,14 +506,17 @@ describe('insights and dashboard', () => {
     });
     renderRoute('/org/dashboard');
     await screen.findByTestId('dashboard-tile-students-value');
-    expect(screen.getByTestId('dashboard-filter-reset-btn')).toBeDisabled();
-    await userEvent.selectOptions(screen.getByTestId('dashboard-filter-date-range-select'), '7');
+    expect(await screen.findByTestId('dashboard-filter-reset-btn')).toBeDisabled();
+    await userEvent.selectOptions(
+      await screen.findByTestId('dashboard-filter-date-range-select'),
+      '7',
+    );
     await waitFor(() =>
       expect(called('GET /api/v1/organizations/current/overview').at(-1)!.query).toMatchObject({
         range: '7',
       }),
     );
-    await userEvent.click(screen.getByTestId('dashboard-filter-reset-btn'));
+    await userEvent.click(await screen.findByTestId('dashboard-filter-reset-btn'));
     // Back to the default range; its numbers come from the cache, so no new request is needed.
     expect(screen.getByTestId('dashboard-filter-date-range-select')).toHaveValue('30');
     expect(screen.getByTestId('dashboard-filter-reset-btn')).toBeDisabled();

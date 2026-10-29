@@ -27,8 +27,6 @@ export interface NavSection {
 // yet (Learning, Batches) are added in their step of docs/design/IMPLEMENTATION_PLAN.md.
 export const orgNavigation: NavSection[] = [
   {
-    id: 'overview',
-    title: 'Overview',
     items: [
       {
         key: 'dashboard',
@@ -150,8 +148,6 @@ export const orgNavigation: NavSection[] = [
 
 export const teacherNavigation: NavSection[] = [
   {
-    id: 'overview',
-    title: 'Overview',
     items: [{ key: 'dashboard', label: 'Dashboard', to: '/teacher/dashboard', icon: 'dashboard' }],
   },
   {
@@ -204,9 +200,7 @@ export const teacherNavigation: NavSection[] = [
 
 export const studentNavigation: NavSection[] = [
   {
-    id: 'overview',
-    title: 'Overview',
-    items: [{ key: 'home', label: 'Home', to: '/student/dashboard', icon: 'dashboard' }],
+    items: [{ key: 'home', label: 'Home', to: '/student/dashboard', icon: 'home' }],
   },
   {
     id: 'my-exams',

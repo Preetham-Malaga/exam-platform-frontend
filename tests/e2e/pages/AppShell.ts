@@ -9,7 +9,7 @@ export class AppShell {
   }
 
   readonly nav = () => this.page.locator(S.nav);
-  readonly userEmail = () => this.page.locator(S.userEmail);
+  readonly userName = () => this.page.locator(S.sidebarUserName);
   readonly navLink = (selector: string) => this.page.locator(selector);
 
   async signOut(): Promise<void> {

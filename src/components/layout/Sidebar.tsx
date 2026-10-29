@@ -11,6 +11,7 @@ import { Icon } from '@/components/ui/Icon';
 import { APP_NAME } from '@/lib/constants';
 import { cn } from '@/utils/cn';
 import type { NavItem, NavSection } from '@/utils/navigation';
+import { AppearancePanel } from '@/features/appearance/AppearancePanel';
 import type { ShellUser } from './shellUser';
 
 const storageKey = (user?: ShellUser) => `nav-open-groups:${user?.email ?? 'anon'}`;
@@ -120,7 +121,7 @@ export function Sidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <aside
-      className="flex w-full max-w-none flex-col gap-4 rounded-card bg-surface p-3 min-[861px]:sticky min-[861px]:top-5 min-[861px]:max-h-[calc(100vh-40px)] min-[861px]:max-w-[280px] min-[861px]:flex-[1_1_236px] min-[861px]:px-3 min-[861px]:py-5"
+      className="flex w-full max-w-none flex-col gap-4 rounded-card bg-surface p-3 min-[861px]:sticky min-[861px]:top-5 min-[861px]:h-[calc(100vh-40px)] min-[861px]:max-w-[280px] min-[861px]:flex-[1_1_236px] min-[861px]:px-3 min-[861px]:py-5"
       data-testid="sidebar"
       data-open={menuOpen}
     >
@@ -157,8 +158,11 @@ export function Sidebar({
             onNavigate={() => setMenuOpen(false)}
           />
         </div>
+        <div className="mt-auto shrink-0">
+          <AppearancePanel />
+        </div>
         {user && (
-          <div className="mt-auto flex shrink-0 items-center gap-2.5 border-t border-border px-2 pt-3">
+          <div className="flex shrink-0 items-center gap-2.5 border-t border-border px-2 pt-3">
             <Avatar name={user.name} />
             <div className="min-w-0 flex-1">
               <b className="block truncate" data-testid="sidebar-user-name">

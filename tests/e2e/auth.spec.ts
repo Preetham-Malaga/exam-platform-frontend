@@ -54,7 +54,7 @@ for (const role of ROLES) {
     // Sign-in is two round trips (Supabase Auth, then the account from our API): allow for a slow network.
     await expect(page).toHaveURL(new RegExp(`${user.home}$`), { timeout: 30_000 });
     const shell = new AppShell(page);
-    await expect(shell.userEmail()).toHaveText(user.email);
+    await expect(shell.userName()).toBeVisible();
     await expect(
       shell.navLink(role === 'student' ? NavLinks.home : NavLinks.dashboard),
     ).toBeVisible();

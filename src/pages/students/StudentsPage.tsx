@@ -110,12 +110,20 @@ export function StudentForm({
       );
     else
       create.mutate(v, {
-        onSuccess: () => {
-          toast({
-            title: 'Student added',
-            description: v.invite ? `An invitation was sent to ${v.email}.` : undefined,
-            variant: 'success',
-          });
+        onSuccess: (saved) => {
+          // Saved even when the e-mail could not go out; say why, so the invitation can be re-sent from the row.
+          if (saved.inviteError)
+            toast({
+              title: 'Student added, but the invitation was not sent',
+              description: saved.inviteError.message,
+              variant: 'warning',
+            });
+          else
+            toast({
+              title: 'Student added',
+              description: v.invite ? `An invitation was sent to ${v.email}.` : undefined,
+              variant: 'success',
+            });
           close();
         },
         onError: fail('Could not add the student'),

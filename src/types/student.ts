@@ -5,6 +5,8 @@
 import type { Paginated } from './api';
 
 export interface Student {
+  /** Only on create: set when the record was saved but the invitation e-mail could not be sent. */
+  inviteError?: { code: string; message: string } | null;
   id: string;
   rollNumber: string;
   fullName: string;
