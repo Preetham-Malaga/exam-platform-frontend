@@ -6,7 +6,6 @@
   "src/pages/auth/VerifyEmailPage.tsx": 4,
   "src/pages/exams/AssignmentsPage.tsx": 1,
   "src/pages/exams/ExamDetailPage.tsx": 14,
-  "src/pages/exams/ExamsPage.tsx": 1,
   "src/pages/insights/LeaderboardPage.tsx": 2,
   "src/pages/insights/ReportsPage.tsx": 1,
   "src/pages/insights/ResultsPage.tsx": 2,

@@ -70,12 +70,15 @@ export interface ExamSettings {
   showAnswers: boolean;
   leaderboardEnabled: boolean;
 }
+/** Prototype tabs: draft (draft or unpublished), published (open or upcoming), closed (window over or archived). */
+export type ExamState = 'draft' | 'published' | 'closed';
 export interface ExamSummary {
   id: string;
   examCode: string;
   name: string;
   description: string | null;
   status: ExamStatus;
+  state?: ExamState;
   courseId: string | null;
   courseName: string | null;
   durationMinutes: number;
@@ -129,6 +132,7 @@ export interface ExamListParams {
   pageSize: number;
   search?: string;
   status?: ExamStatus;
+  state?: ExamState;
   sort?: string;
   order?: 'asc' | 'desc';
 }

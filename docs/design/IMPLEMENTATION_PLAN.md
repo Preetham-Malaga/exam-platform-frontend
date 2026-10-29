@@ -1,7 +1,7 @@
 # Implementation plan: rebuild the UI to match the approved prototype
 
 Source of truth: `docs/design/exam-platform-prototype.html`. Open it in a browser and switch roles in the black bar.
-Work runs in the order of section 10 of the brief, with one commit or more per step. Status: ☐ to do · ◐ in progress · ☑ done.
+Work runs in the order of section 10 of the brief, with one commit or more per step. Status: ◐ to do · ◐ in progress · ☑ done.
 
 ## Stack (unchanged)
 
@@ -66,8 +66,8 @@ Tests: Vitest + Testing Library; Playwright e2e with page objects (`tests/e2e`).
 | 1   | Theme tokens, layout shell, grouped menu                                            | ☑      |
 | 2   | Auth: remove Google, fix organization creation, roles and invites, pending approval | ☑      |
 | 3   | Courses (list + course/subject/topic screens)                                       | ☑      |
-| 4   | Question Bank                                                                       | ☐      |
-| 5   | Exams                                                                               | ☐      |
+| 4   | Question Bank                                                                       | ◐      |
+| 5   | Exams                                                                               | ◐      |
 | 6   | Dashboard + summary endpoint                                                        | ☐      |
 | 7   | People (students, teachers, batches, admins)                                        | ☐      |
 | 8   | Learning (live, recorded, materials)                                                | ☐      |

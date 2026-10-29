@@ -385,6 +385,7 @@ export default function ExamDetailPage() {
         ? examService.unpublish(examId!)
         : examService.remove(examId!),
   );
+  const duplicate = useAssessmentMutation((id: string) => examService.duplicate(id));
   const tab = params.get('tab') ?? 'details';
 
   if (exam.isPending) return <LoadingState />;
@@ -424,7 +425,7 @@ export default function ExamDetailPage() {
       <PageHeader
         title={e.name}
         description={`${e.examCode} · ${e.questionCount} questions · ${e.totalMarks} marks · ${e.durationMinutes} min · pass ${e.passingPercentage}%`}
-        breadcrumb={[{ label: 'Exams' }, { label: 'Exams' }, { label: e.name }]}
+        breadcrumb={[{ label: 'Exams', to: `${base}/exams` }, { label: e.name }]}
         actions={
           <>
             <StatusBadge status={e.status} />
@@ -444,6 +445,30 @@ export default function ExamDetailPage() {
                 data-testid="exam-unpublish-btn"
               >
                 Unpublish
+              </Button>
+            )}
+            {perms.can('exam.create') && (
+              <Button
+                variant="ghost"
+                leftIcon={<Icon name="copy" size={16} />}
+                loading={duplicate.isPending}
+                onClick={() =>
+                  duplicate.mutate(e.id, {
+                    onSuccess: (x) => {
+                      toast({ title: 'Duplicated as a new draft', variant: 'success' });
+                      navigate(`${base}/exams/${x.id}`);
+                    },
+                    onError: (err) =>
+                      toast({
+                        title: 'Could not duplicate',
+                        description: errorText(err),
+                        variant: 'error',
+                      }),
+                  })
+                }
+                data-testid="exam-duplicate-btn"
+              >
+                Duplicate
               </Button>
             )}
             {!published && e.attemptCount === 0 && perms.can('exam.delete') && (

@@ -28,6 +28,7 @@ import type {
   StudentPerformance,
   SubmitResponse,
   AttemptMeta,
+  ExamState,
   QuestionImportResult,
   QuestionImportRow,
 } from '@/types/assessment';
@@ -54,7 +55,8 @@ export const questionService = {
 };
 
 export const examService = {
-  list: (p: ExamListParams) => api.get<ExamList>(`${P}/exams?${qs({ ...p })}`),
+  list: (p: ExamListParams) =>
+    api.get<ExamList & { counts?: Record<ExamState, number> }>(`${P}/exams?${qs({ ...p })}`),
   get: (id: string) => api.get<Exam>(`${P}/exams/${id}`),
   create: (b: ExamBody) => api.post<Exam>(`${P}/exams`, b),
   update: (id: string, b: Partial<ExamBody>) => api.patch<Exam>(`${P}/exams/${id}`, b),
@@ -64,6 +66,7 @@ export const examService = {
     api.put<Exam>(`${P}/exams/${id}/assignments`, { targets }),
   publish: (id: string) => api.post<Exam>(`${P}/exams/${id}/publish`),
   unpublish: (id: string) => api.post<Exam>(`${P}/exams/${id}/unpublish`),
+  duplicate: (id: string) => api.post<Exam>(`${P}/exams/${id}/duplicate`),
   remove: (id: string) => api.delete<{ deleted: true }>(`${P}/exams/${id}`),
 };
 

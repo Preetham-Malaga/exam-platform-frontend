@@ -121,7 +121,8 @@ const assessmentRoutes: RouteObject[] = [
           },
         ],
       },
-      { path: 'exams/published', ...page(() => import('@/pages/exams/PublishedExamsPage')) },
+      // The old Published Exams page is now the Published tab of Exams.
+      { path: 'exams/published', element: <Navigate to="../exams?tab=published" replace /> },
       { path: 'exams/:examId', ...page(() => import('@/pages/exams/ExamDetailPage')) },
     ],
   },

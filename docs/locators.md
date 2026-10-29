@@ -185,6 +185,10 @@ Constants: `tests/locators/dashboard.ts`. Data from `GET /organizations/current/
 
 Constants: `tests/locators/questions.ts`. Course cards `questions-course-card` (`data-entity-id`, `data-entity-code`) → subject tabs `questions-subject-tab` (`data-value` subject id or `all`), difficulty chips `questions-filter-diff-chip` (`data-value`, `aria-pressed`), cards `questions-card` (`data-entity-id`, `data-state` draft/published) with `-options-btn`, `-edit-btn`, `-publish-btn` / `-draft-btn`, `-delete-btn` → `questions-delete-confirm`. Header: `questions-new-btn`, `questions-import-btn`. Import page `page-questions-import`: `questions-import-file-input`, `-template-link`, `-preview-row` (`data-state` ok/error, `data-entity-id` = line), `-publish-checkbox`, `-confirm-btn`, `-result`.
 
+## Exams (`/org/exams`, prototype `vExams`)
+
+Constants: `tests/locators/exams.ts`. Tabs `exams-tab-draft` / `-published` / `-closed` with `-count` (`?tab=` in the URL; `/org/exams/published` redirects to the Published tab). Rows `exam-row` (`data-entity-id`, `data-entity-code`, `data-state`) with `exam-row-open-btn`, drafts: `exam-row-edit-btn`, `exam-row-delete-btn` → `exams-delete-confirm`; others: `exam-row-view-btn`, `exam-row-unpublish-btn` → `exams-unpublish-confirm` (no attempts yet) or `exam-row-locked-badge`, `exam-row-duplicate-btn`. Exam page: `exam-duplicate-btn` added.
+
 ## Add pages
 
 Every Add button opens its own page; the form inside keeps the screen's ids. Roots: `page-form-question` (`/org/questions/new`, `/org/questions/:id/edit`), `page-form-exam` (`/org/exams/new`), `page-form-student` (`/org/students/new`), `page-form-teacher` (`/org/teachers/new`), `page-form-admin` (`/org/admins/new`). Breadcrumb `breadcrumb-link` goes back to the list.
