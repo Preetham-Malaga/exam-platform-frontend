@@ -12,6 +12,8 @@ export class ApiClientError extends Error {
     message: string,
     public readonly status: number,
     public readonly requestId?: string,
+    /** The form field the server says the error is about (shown next to that input). */
+    public readonly field?: string,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -70,6 +72,7 @@ export function createApiClient(options: ApiClientOptions) {
         envelope.error.message,
         response.status,
         envelope.requestId,
+        envelope.error.field,
       );
     }
     return envelope.data;

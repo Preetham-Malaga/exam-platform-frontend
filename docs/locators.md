@@ -78,25 +78,60 @@ Constants: `AppShell`, `NavGroups`, `NavLinks` in `tests/locators/shell.ts`.
 | `access-denied` / `access-denied-home-link`                            | no-permission screen                                                                                                                                                                                                        | alert / link            |                                                                                                     |
 | `account-load-error` / `-retry-btn` / `account-load-error-signout-btn` | account could not load                                                                                                                                                                                                      | error / button / button |                                                                                                     |
 
-## Login (`/login`)
+## Login (`/login`, prototype `vLogin`)
 
-Constants: `LoginPage` in `tests/locators/login.ts`.
+Constants: `LoginPage` in `tests/locators/login.ts`. Email and password only (no Google).
 
-| testid                                          | element                | type          | notes                                        |
-| ----------------------------------------------- | ---------------------- | ------------- | -------------------------------------------- |
-| `page-login`                                    | screen root            | root          | always `data-ready="true"` (no data to load) |
-| `login-form`                                    | form                   | form          |                                              |
-| `login-email-input` / `login-email-error`       | e-mail                 | input / error | `name="email"`                               |
-| `login-password-input` / `login-password-error` | password               | input / error | `name="password"`                            |
-| `login-password-toggle-btn`                     | show/hide password     | button        | `aria-pressed`                               |
-| `login-remember-checkbox`                       | Remember me            | checkbox      | `name="remember"`                            |
-| `login-forgot-password-link`                    | Forgot password?       | link          | `/forgot-password`                           |
-| `login-error`                                   | form error             | error         | wrong password, unverified, rate limited     |
-| `login-session-expired-hint`                    | session expired notice | hint          |                                              |
-| `login-resend-verification-btn`                 | resend verification    | button        | only after "email not verified"              |
-| `login-submit-btn`                              | Login                  | button        | `data-loading` while signing in              |
-| `login-google-btn`                              | Continue with Google   | button        |                                              |
-| `login-signup-link`                             | Sign up                | link          | `/register`                                  |
+| testid                                          | element                | type          | notes                                    |
+| ----------------------------------------------- | ---------------------- | ------------- | ---------------------------------------- |
+| `page-login`                                    | screen root            | root          | always `data-ready="true"`               |
+| `login-form`                                    | form                   | form          |                                          |
+| `login-email-input` / `login-email-error`       | e-mail                 | input / error | `name="email"`                           |
+| `login-password-input` / `login-password-error` | password               | input / error | `name="password"`                        |
+| `login-password-toggle-btn`                     | show/hide password     | button        | `aria-pressed`                           |
+| `login-remember-checkbox`                       | Remember me            | checkbox      | `name="remember"`                        |
+| `login-forgot-link`                             | Forgot password?       | link          | `/forgot-password`                       |
+| `login-error`                                   | form error             | error         | wrong password, unverified, rate limited |
+| `login-session-expired-hint`                    | session expired notice | hint          |                                          |
+| `login-resend-verification-btn`                 | resend verification    | button        | only after "email not verified"          |
+| `login-submit-btn`                              | Log in                 | button        | `data-loading` while signing in          |
+| `login-signup-link`                             | Create an account      | link          | `/register`                              |
+
+## Sign-up (`/register`, prototype `SPEC.signup`)
+
+Constants: `SignupPage`, `SignupPending`, `OrganizationNotActive` in `tests/locators/signup.ts`.
+Fields `signup-<key>-input|select|checkbox`, errors `signup-<key>-error` (key from the prototype, kebab-case).
+
+| testid                                                             | element                                                  | type             | notes                                                                                                   |
+| ------------------------------------------------------------------ | -------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `page-signup` / `signup-form`                                      | screen / form                                            | root / form      |                                                                                                         |
+| `signup-section-your-institution` / `signup-section-owner-account` | field groups                                             | fieldset         |                                                                                                         |
+| `signup-org-name-input`                                            | Organization name                                        | input            | required, 2–120                                                                                         |
+| `signup-inst-type-select`                                          | Institution type                                         | select           | required; options carry `data-value` (`school`, `coaching`, `degree`, `engineering`, `mba`, `training`) |
+| `signup-city-input` / `signup-state-select`                        | City / State-UT                                          | input / select   | required                                                                                                |
+| `signup-first-name-input` / `signup-last-name-input`               | owner name                                               | input            | first name required                                                                                     |
+| `signup-email-input`                                               | Work email                                               | input            | required; server errors (refused / taken address) land on `signup-email-error`                          |
+| `signup-mobile-input`                                              | Mobile number                                            | input            | required, 10 digits starting 6–9, +91 optional                                                          |
+| `signup-heard-select`                                              | How did you hear about us?                               | select           | optional                                                                                                |
+| `signup-password-input` / `signup-confirm-input`                   | Password / Confirm                                       | input            | toggles `signup-password-toggle-btn`, `signup-confirm-toggle-btn`                                       |
+| `signup-terms-checkbox` / `signup-terms-error`                     | terms                                                    | checkbox / error | required                                                                                                |
+| `signup-error-summary` / `signup-error-summary-link`               | "Fix N fields" + one link per field                      | alert / button   | links carry `data-value` = field key and focus it                                                       |
+| `signup-server-error`                                              | server error without a field (e.g. `EMAIL_RATE_LIMITED`) | alert            |                                                                                                         |
+| `signup-submit-btn` / `signup-login-link`                          | Create organization / Log in                             | button / link    |                                                                                                         |
+| `signup-pending` / `signup-pending-step`                           | "Request received" (`/register/pending`)                 | region / item    | steps carry `data-state` done/todo                                                                      |
+| `signup-pending-resend-btn` / `signup-pending-login-link`          | resend verification / back to login                      | button / link    |                                                                                                         |
+| `organization-not-active`                                          | "Waiting for approval" instead of the app                | region           | `data-state` = organization status                                                                      |
+| `organization-not-active-recheck-btn` / `-signout-btn`             | Check again / Sign out                                   | button           |                                                                                                         |
+
+## Platform (`/platform/organizations`)
+
+| testid                                                                   | element                      | type    | notes                                        |
+| ------------------------------------------------------------------------ | ---------------------------- | ------- | -------------------------------------------- |
+| `page-platform-organizations`                                            | screen root                  | root    | `data-ready`                                 |
+| `platform-organizations-tab-pending_approval` / `-tab-all`               | tabs                         | tab     |                                              |
+| `platform-organization-row`                                              | organization                 | row     | `data-entity-id`, `data-entity-code` (ORG-…) |
+| `platform-organization-row-approve-btn`                                  | Approve                      | button  | waiting organizations only                   |
+| `platform-organization-approve-confirm` / `-cancel-btn` / `-confirm-btn` | approve, asked under the row | confirm |                                              |
 
 ## Inline forms and confirmations per screen
 
@@ -133,3 +168,4 @@ the phase that works on it. `npm run check:testids -- --list` shows what is left
 | 2026-10-28 | No pop-ups: Modal / Drawer / ConfirmDialog replaced by inline forms and confirmations. **Removed:** `dialog`, `dialog-overlay`, `<x>-dialog`, `<x>-dialog-close-btn`, `nav-drawer`, `nav-drawer-close-btn`. **Replaced by:** `<form id>` + `<form id>-close-btn`, `<prefix>-confirm`, `<prefix>-row-expanded`, `nav-mobile-menu`. Row menus now use static `row-actions-*` ids (were derived from the row's name). Ids added to the screens listed above.                                                                                                             |
 | 2026-10-28 | New menu: collapsible groups Syllabus, Exams, People, Insights, Settings; Academic Structure removed from the menu. **Changed:** sidebar links `nav-<page>-link` → `nav-<group>-<page>-link` (Dashboard unchanged); **added** `nav-<group>-group-btn`, `nav-<group>-group`.                                                                                                                                                                                                                                                                                           |
 | 2026-10-29 | Prototype shell (step 1). **Removed:** `topbar-nav-toggle-btn`, `topbar-user-name`, `topbar-user-email`, `topbar-account-menu-btn`, `topbar-account-menu`, `topbar-account-signout-menu-item`, `nav-mobile-menu`. **Replaced by:** `nav-menu-btn`, `header-user-name`, `header-user-email`, `nav-logout-btn`, `sidebar`. **Changed:** menu links `nav-<group>-<page>-link` → prototype keys `nav-<key>-link`; groups now `overview`, `academics`, `assessments`, `people`, `insights`, `settings`. **Added:** `header-user-pill`, `page-header`, `sidebar-user-name`. |
+| 2026-10-29 | Step 2. **Removed:** `login-google-btn`. **Renamed:** `login-forgot-password-link` → `login-forgot-link` (prototype id). **Added:** the sign-up fields, summary, pending and waiting screens, platform organizations (see above).                                                                                                                                                                                                                                                                                                                                     |

@@ -138,14 +138,7 @@ describe('the menu follows the role (UX only)', () => {
     setup('OWNER', { isPlatformAdmin: true, roles: [], permissions: [], organization: null });
     renderRoute('/app');
     const nav = await openNav();
-    expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Dashboard',
-      'Organizations',
-      'Users',
-      'Plans',
-      'Subscriptions',
-      'Audit Logs',
-    ]);
+    expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual(['Organizations']);
   });
 });
 

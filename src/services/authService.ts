@@ -5,7 +5,6 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { api } from '@/lib/api';
 import { API_PREFIX } from '@/lib/constants';
-import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabaseClient';
 import type { MeResponse, RegisterRequest, RegisterResponse, SignInResult } from '@/types/auth';
 
@@ -36,30 +35,6 @@ export const authService = {
     if (error.status === 429 || text.includes('rate limit'))
       return { ok: false, reason: 'rate_limited' };
     return { ok: false, reason: 'unknown' };
-  },
-
-  /**
-   * Google sign-in (Supabase OAuth). Checks first that the provider is enabled in the Supabase project, because an
-   * unconfigured provider would otherwise send the user to a raw JSON error page.
-   * On success the browser leaves for Google and comes back to /app.
-   */
-  async signInWithGoogle(): Promise<
-    { ok: true } | { ok: false; reason: 'not_enabled' | 'unknown' }
-  > {
-    try {
-      const res = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/settings`, {
-        headers: { apikey: env.VITE_SUPABASE_ANON_KEY },
-      });
-      const settings = (await res.json()) as { external?: { google?: boolean } };
-      if (!settings.external?.google) return { ok: false, reason: 'not_enabled' };
-    } catch {
-      return { ok: false, reason: 'unknown' };
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${origin()}/app` },
-    });
-    return error ? { ok: false, reason: 'unknown' } : { ok: true };
   },
 
   async signOut(): Promise<void> {

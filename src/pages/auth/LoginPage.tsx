@@ -1,4 +1,4 @@
-// PURPOSE: /login - sign in with email and password (or Google) through Supabase Auth.
+// PURPOSE: /login - sign in with email and password through Supabase Auth (prototype vLogin). No Google sign-in.
 // WHY: Real authentication; the GuestOnly guard moves the user on as soon as the session exists.
 //      "Remember me" decides whether the session survives closing the browser (lib/authStorage.ts).
 // DEPENDS ON: services/authService.ts, contexts/AuthContext.tsx, features/auth/schemas.ts, lib/authStorage.ts.
@@ -12,34 +12,10 @@ import { Checkbox, Input, PasswordInput } from '@/components/forms/Form';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { PageRoot } from '@/components/layout/PageRoot';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginSchema, type LoginValues } from '@/features/auth/schemas';
 import { getRememberMe, setRememberMe } from '@/lib/authStorage';
 import { authService } from '@/services/authService';
-
-function GoogleLogo() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-      <path
-        fill="#FFC107"
-        d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"
-      />
-    </svg>
-  );
-}
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -48,7 +24,6 @@ export default function LoginPage() {
   const [unverified, setUnverified] = useState(false);
   const [resending, setResending] = useState(false);
   const [remember, setRemember] = useState(getRememberMe);
-  const [googleBusy, setGoogleBusy] = useState(false);
   const {
     register,
     handleSubmit,
@@ -75,21 +50,6 @@ export default function LoginPage() {
     else setFormError('We could not sign you in. Please try again.');
   });
 
-  const google = async () => {
-    setFormError(null);
-    setGoogleBusy(true);
-    setRememberMe(remember);
-    const r = await authService.signInWithGoogle();
-    if (!r.ok) {
-      setGoogleBusy(false);
-      setFormError(
-        r.reason === 'not_enabled'
-          ? 'Google sign-in is not enabled for this platform yet. Please use your email and password.'
-          : 'We could not start Google sign-in. Please try again.',
-      );
-    } // on success the browser is already on its way to Google
-  };
-
   const resend = async () => {
     setResending(true);
     const ok = await authService.resendVerification(getValues('email').trim());
@@ -107,54 +67,51 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome Back"
-      subtitle="Sign in to continue to your account"
+      title="Welcome back"
+      subtitle="Sign in to continue to your account."
       footer={
         <>
-          Don&apos;t have an account?{' '}
-          <Link
-            to="/register"
-            className="font-semibold text-[#3b5bdb] hover:underline"
-            data-testid="login-signup-link"
-          >
-            Sign up
+          New institution?{' '}
+          <Link to="/register" className="font-bold text-accent" data-testid="login-signup-link">
+            Create an account
           </Link>
         </>
       }
     >
-      <PageRoot testId="page-login">
+      <PageRoot testId="page-login" className="flex flex-col gap-4">
         {sessionExpired && (
           <p
             role="status"
-            className="mb-4 rounded-lg bg-warning/15 px-3 py-2 text-sm text-text"
+            className="m-0 rounded-2xl bg-butter px-3.5 py-3 text-[13px] font-semibold text-butter-ink"
             data-testid="login-session-expired-hint"
           >
             Your session has expired. Please sign in again.
           </p>
         )}
-        <form onSubmit={onSubmit} noValidate className="grid gap-5" data-testid="login-form">
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="flex flex-col gap-4"
+          data-testid="login-form"
+        >
           <Input
             label="Email"
-            data-testid="login-email-input"
             type="email"
-            autoComplete="username"
-            placeholder="Enter your email address"
+            autoComplete="email"
             required
-            leftIcon={<Icon name="mail" size={18} />}
+            data-testid="login-email-input"
             error={errors.email?.message}
             {...register('email')}
           />
           <PasswordInput
             label="Password"
-            data-testid="login-password-input"
             autoComplete="current-password"
-            placeholder="Enter your password"
             required
-            leftIcon={<Icon name="lock" size={18} />}
+            data-testid="login-password-input"
             error={errors.password?.message}
             {...register('password')}
           />
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Checkbox
               label="Remember me"
               name="remember"
@@ -164,14 +121,18 @@ export default function LoginPage() {
             />
             <Link
               to="/forgot-password"
-              className="text-sm font-medium text-[#3b5bdb] hover:underline"
-              data-testid="login-forgot-password-link"
+              className="font-bold text-accent"
+              data-testid="login-forgot-link"
             >
               Forgot password?
             </Link>
           </div>
           {formError && (
-            <p role="alert" className="text-sm text-error" data-testid="login-error">
+            <p
+              role="alert"
+              className="m-0 text-xs font-semibold text-danger"
+              data-testid="login-error"
+            >
               {formError}
             </p>
           )}
@@ -189,31 +150,12 @@ export default function LoginPage() {
           <Button
             type="submit"
             loading={isSubmitting}
-            className="h-12 text-base"
             data-testid="login-submit-btn"
             data-loading={isSubmitting || undefined}
           >
-            Login
-            <Icon name="arrowRight" size={18} />
+            Log in
           </Button>
         </form>
-
-        <div className="my-6 flex items-center gap-3 text-xs text-muted">
-          <span className="h-px flex-1 bg-border" />
-          or continue with
-          <span className="h-px flex-1 bg-border" />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 w-full text-base"
-          loading={googleBusy}
-          leftIcon={<GoogleLogo />}
-          onClick={() => void google()}
-          data-testid="login-google-btn"
-        >
-          Continue with Google
-        </Button>
       </PageRoot>
     </AuthLayout>
   );

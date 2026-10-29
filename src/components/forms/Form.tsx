@@ -116,7 +116,7 @@ export const Input = forwardRef<
             aria-required={required || undefined}
             className={cn(
               control,
-              'h-10',
+              'h-[46px]',
               Boolean(leftIcon) && 'pl-10',
               Boolean(rightSlot) && 'pr-11',
               invalid ? 'border-error' : 'border-border',
@@ -214,7 +214,7 @@ export const Select = forwardRef<
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           aria-required={required || undefined}
-          className={cn(control, 'h-10', invalid ? 'border-error' : 'border-border')}
+          className={cn(control, 'h-[46px]', invalid ? 'border-error' : 'border-border')}
           data-testid={testId}
           {...rest}
         >
@@ -279,7 +279,7 @@ export const Checkbox = forwardRef<
         id={id}
         type="checkbox"
         aria-describedby={description ? `${id}-d` : undefined}
-        className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+        className="mt-0.5 h-[18px] w-[18px] rounded border-border accent-accent"
         {...rest}
       />
       <label htmlFor={id} className="text-sm text-text">
@@ -305,7 +305,7 @@ export const Radio = forwardRef<
         ref={ref}
         id={id}
         type="radio"
-        className="h-4 w-4 border-border accent-primary"
+        className="h-[18px] w-[18px] border-border accent-accent"
         {...rest}
       />
       <label htmlFor={id} className="text-sm text-text">

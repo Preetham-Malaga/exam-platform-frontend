@@ -32,6 +32,11 @@ export interface RegisterRequest {
   ownerName: string;
   email: string;
   password: string;
+  city?: string;
+  state?: string;
+  mobile?: string;
+  heardFrom?: string;
+  acceptTerms?: true;
 }
 export interface RegisterResponse {
   organizationCode: string;

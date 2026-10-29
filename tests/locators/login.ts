@@ -10,11 +10,10 @@ export const LoginPage = {
   passwordError: tid('login-password-error'),
   passwordToggleBtn: tid('login-password-toggle-btn'),
   rememberCheckbox: tid('login-remember-checkbox'),
-  forgotPasswordLink: tid('login-forgot-password-link'),
+  forgotLink: tid('login-forgot-link'),
   error: tid('login-error'),
   sessionExpiredHint: tid('login-session-expired-hint'),
   resendVerificationBtn: tid('login-resend-verification-btn'),
   submitBtn: tid('login-submit-btn'),
-  googleBtn: tid('login-google-btn'),
   signupLink: tid('login-signup-link'),
 } as const;

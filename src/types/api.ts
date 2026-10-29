@@ -5,6 +5,8 @@
 export interface ApiErrorBody {
   code: string;
   message: string;
+  /** The request field the error is about. */
+  field?: string;
 }
 
 export type ApiEnvelope<T> =

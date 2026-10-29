@@ -52,7 +52,7 @@ const signInAs = async (email = 'owner@college.test', id = 'u1') => {
 describe('route guards', () => {
   it('sends a signed-out visitor from a protected page to /login and brings them back after sign-in', async () => {
     renderRoute('/org/profile');
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(calls.filter((c) => c.key === 'GET /api/v1/organizations/current')).toHaveLength(0); // protected data is never requested
     await signInAs();
     expect(
@@ -90,7 +90,7 @@ describe('route guards', () => {
 
   it('lets signed-out visitors open the public auth pages', async () => {
     for (const [path, heading] of [
-      ['/login', 'Welcome Back'],
+      ['/login', 'Welcome back'],
       ['/register', 'Create your account'],
       ['/forgot-password', 'Forgot your password?'],
       ['/verify-email', 'Check your email'],
@@ -149,7 +149,7 @@ describe('session expiry', () => {
       },
     });
     renderRoute('/app');
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Your session has expired');
     expect(fakeSupabase.auth.signOut).toHaveBeenCalled();
   });
@@ -161,7 +161,7 @@ describe('session expiry', () => {
       error: { code: 'UNAUTHENTICATED', message: 'Please sign in to continue.' },
     });
     renderRoute('/org/profile');
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(screen.getByText(/Your session has expired/)).toBeInTheDocument();
     api['GET /api/v1/organizations/current'] = () => ({ data: org });
     await signInAs();
@@ -177,7 +177,7 @@ describe('sign out and switching users', () => {
     renderRoute('/app');
     await screen.findByRole('heading', { name: /^Welcome, / });
     await userEvent.click(screen.getByTestId('nav-logout-btn'));
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(fakeSupabase.auth.signOut).toHaveBeenCalledTimes(1);
   });
 
@@ -215,12 +215,12 @@ describe('sign out and switching users', () => {
 describe('LoginPage', () => {
   it('validates before calling Supabase', async () => {
     renderRoute('/login');
-    await userEvent.click(await screen.findByRole('button', { name: 'Login' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Log in' }));
     expect(await screen.findByText('Enter your email address')).toBeInTheDocument();
     expect(screen.getByText('Enter your password')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Email/), 'nope');
     await userEvent.type(screen.getByLabelText(/Password/), 'x');
-    await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
     expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument();
     expect(fakeSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
   });
@@ -233,7 +233,7 @@ describe('LoginPage', () => {
     renderRoute('/login');
     await userEvent.type(await screen.findByLabelText(/Email/), '  owner@college.test  ');
     await userEvent.type(screen.getByLabelText(/Password/), 'Passw0rd!x');
-    await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
     expect(await screen.findByRole('heading', { name: /^Welcome, / })).toBeInTheDocument();
     expect(fakeSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'owner@college.test',
@@ -262,7 +262,7 @@ describe('LoginPage', () => {
     renderRoute('/login');
     await userEvent.type(await screen.findByLabelText(/Email/), 'a@b.co');
     await userEvent.type(screen.getByLabelText(/Password/), 'Passw0rd!x');
-    await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(shown);
     expect(screen.queryByText('weird')).not.toBeInTheDocument();
   });
@@ -275,7 +275,7 @@ describe('LoginPage', () => {
     renderRoute('/login');
     await userEvent.type(await screen.findByLabelText(/Email/), 'new@college.test');
     await userEvent.type(screen.getByLabelText(/Password/), 'Passw0rd!x');
-    await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('verify your email');
     await userEvent.click(screen.getByRole('button', { name: 'Resend verification email' }));
     await waitFor(() =>
@@ -293,38 +293,75 @@ describe('LoginPage', () => {
       'href',
       '/forgot-password',
     );
-    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/register');
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
   });
 });
 
 describe('RegisterPage', () => {
-  const fill = async (
-    over: Partial<Record<'org' | 'type' | 'owner' | 'email' | 'pw' | 'pw2', string>> = {},
-  ) => {
+  // Prototype SPEC.signup; fields are found by their data-testid (the QA contract).
+  type Over = Partial<{
+    org: string;
+    type: string;
+    city: string;
+    state: string;
+    first: string;
+    last: string;
+    email: string;
+    mobile: string;
+    pw: string;
+    pw2: string;
+    heard: string;
+    terms: boolean;
+  }>;
+  const fill = async (over: Over = {}) => {
     const v = {
       org: 'Demo College',
       type: 'engineering',
-      owner: 'Asha Verma',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      first: 'Asha',
+      last: 'Verma',
       email: 'asha@college.test',
+      mobile: '98480 12345',
       pw: 'Passw0rd!x',
       pw2: 'Passw0rd!x',
+      heard: 'Google search',
+      terms: true,
       ...over,
     };
-    await userEvent.type(await screen.findByLabelText(/Organization name/), v.org);
-    if (v.type) await userEvent.selectOptions(screen.getByLabelText(/Institution type/), v.type);
-    await userEvent.type(screen.getByLabelText(/Your full name/), v.owner);
-    await userEvent.type(screen.getByLabelText(/^Email/), v.email);
-    await userEvent.type(screen.getByLabelText(/^Password/), v.pw);
-    await userEvent.type(screen.getByLabelText(/Repeat password/), v.pw2);
-    await userEvent.click(screen.getByRole('button', { name: 'Create organization' }));
+    const t = (id: string) => screen.getByTestId(id);
+    await userEvent.type(await screen.findByTestId('signup-org-name-input'), v.org);
+    if (v.type) await userEvent.selectOptions(t('signup-inst-type-select'), v.type);
+    if (v.city) await userEvent.type(t('signup-city-input'), v.city);
+    if (v.state) await userEvent.selectOptions(t('signup-state-select'), v.state);
+    if (v.first) await userEvent.type(t('signup-first-name-input'), v.first);
+    if (v.last) await userEvent.type(t('signup-last-name-input'), v.last);
+    if (v.email) await userEvent.type(t('signup-email-input'), v.email);
+    if (v.mobile) await userEvent.type(t('signup-mobile-input'), v.mobile);
+    if (v.heard) await userEvent.selectOptions(t('signup-heard-select'), v.heard);
+    await userEvent.type(t('signup-password-input'), v.pw);
+    await userEvent.type(t('signup-confirm-input'), v.pw2);
+    if (v.terms) await userEvent.click(t('signup-terms-checkbox'));
+    await userEvent.click(t('signup-submit-btn'));
   };
+  const registerCalls = () => calls.filter((c) => c.key === 'POST /api/v1/auth/register');
 
-  it('validates every field and sends nothing while invalid', async () => {
+  it('validates every required field, lists them in a summary and sends nothing', async () => {
     renderRoute('/register');
-    await userEvent.click(await screen.findByRole('button', { name: 'Create organization' }));
-    expect(await screen.findByText('Choose your institution type')).toBeInTheDocument();
-    expect(screen.getAllByText('Enter at least 2 characters').length).toBe(2);
-    expect(calls.filter((c) => c.key === 'POST /api/v1/auth/register')).toHaveLength(0);
+    await userEvent.click(await screen.findByTestId('signup-submit-btn'));
+    const summary = await screen.findByTestId('signup-error-summary');
+    expect(summary).toHaveTextContent('Fix 10 fields to save');
+    expect(screen.getByTestId('signup-inst-type-error')).toHaveTextContent(
+      'Choose institution type.',
+    );
+    expect(screen.getByTestId('signup-terms-error')).toHaveTextContent(
+      'Tick this box to continue.',
+    );
+    expect(screen.getByTestId('signup-org-name-input')).toHaveFocus(); // first invalid field
+    expect(registerCalls()).toHaveLength(0);
   });
 
   it.each([
@@ -335,59 +372,76 @@ describe('RegisterPage', () => {
     renderRoute('/register');
     await fill({ pw, pw2: pw });
     expect(await screen.findByText(message)).toBeInTheDocument();
-    expect(calls.filter((c) => c.key === 'POST /api/v1/auth/register')).toHaveLength(0);
+    expect(registerCalls()).toHaveLength(0);
   });
 
-  it('requires the two passwords to match', async () => {
+  it('requires the two passwords to match and a valid Indian mobile number', async () => {
     renderRoute('/register');
-    await fill({ pw2: 'Different1' });
-    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
+    await fill({ pw2: 'Different1', mobile: '12345' });
+    expect(await screen.findByTestId('signup-confirm-error')).toHaveTextContent(
+      "Passwords don't match.",
+    );
+    expect(screen.getByTestId('signup-mobile-error')).toHaveTextContent('10-digit mobile number');
   });
 
-  it('registers (without the repeat-password field) and asks the owner to verify their email', async () => {
+  it('registers with every field and shows "Request received"', async () => {
     api['POST /api/v1/auth/register'] = () => ({
       status: 201,
       data: { organizationCode: 'ORG-000009', emailVerificationRequired: true },
     });
     renderRoute('/register');
     await fill();
-    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
-    expect(screen.getByText(/asha@college\.test/)).toBeInTheDocument();
-    const call = calls.find((c) => c.key === 'POST /api/v1/auth/register')!;
+    expect(await screen.findByRole('heading', { name: 'Request received' })).toBeInTheDocument();
+    expect(screen.getByTestId('signup-pending')).toHaveTextContent('asha@college.test');
+    const call = registerCalls()[0]!;
     expect(call.body).toEqual({
       organizationName: 'Demo College',
       institutionType: 'engineering',
       ownerName: 'Asha Verma',
       email: 'asha@college.test',
       password: 'Passw0rd!x',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      mobile: '98480 12345',
+      heardFrom: 'Google search',
+      acceptTerms: true,
     });
     expect(call.auth).toBeNull(); // no token needed to register
   });
 
-  it('shows "already exists" on the email field for a duplicate address', async () => {
+  it('shows the server message next to the field it names (error.field)', async () => {
     api['POST /api/v1/auth/register'] = () => ({
-      status: 409,
-      error: { code: 'EMAIL_IN_USE', message: 'An account with this email already exists.' },
-    });
-    renderRoute('/register');
-    await fill();
-    expect(await screen.findByText(/already exists/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Email/)).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('heading', { name: 'Create your account' })).toBeInTheDocument(); // stays on the form
-  });
-
-  it('shows a toast, and keeps the form, when the server fails', async () => {
-    api['POST /api/v1/auth/register'] = () => ({
-      status: 500,
+      status: 400,
       error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Something went wrong on our side. Please try again.',
+        code: 'EMAIL_INVALID',
+        message: 'This e-mail address cannot receive mail. Use a real address you can open.',
+        field: 'email',
       },
     });
     renderRoute('/register');
     await fill();
-    expect(await screen.findByText('Could not create the organization')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Organization name/)).toHaveValue('Demo College');
+    expect(await screen.findByTestId('signup-email-error')).toHaveTextContent(
+      'cannot receive mail',
+    );
+    expect(screen.getByTestId('signup-email-input')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('heading', { name: 'Create your account' })).toBeInTheDocument(); // stays on the form
+  });
+
+  it('regression "Unable to create organization": a server error without a field shows its real message', async () => {
+    api['POST /api/v1/auth/register'] = () => ({
+      status: 429,
+      error: {
+        code: 'EMAIL_RATE_LIMITED',
+        message:
+          "We can't send the verification e-mail right now because too many were sent recently. Please try again in an hour.",
+      },
+    });
+    renderRoute('/register');
+    await fill();
+    expect(await screen.findByTestId('signup-server-error')).toHaveTextContent(
+      'try again in an hour',
+    );
+    expect(screen.getByTestId('signup-org-name-input')).toHaveValue('Demo College');
   });
 });
 
@@ -529,7 +583,7 @@ describe('ResetPasswordPage', () => {
 describe('Root path', () => {
   it('opens the sign-in screen when signed out', async () => {
     renderRoute('/');
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 
   it('explains instead of showing the login form again when the account cannot be loaded', async () => {
@@ -538,12 +592,12 @@ describe('Root path', () => {
       error: { code: 'SERVICE_UNAVAILABLE', message: 'Service unavailable' },
     });
     renderRoute('/login');
-    await screen.findByRole('heading', { name: 'Welcome Back' });
+    await screen.findByRole('heading', { name: 'Welcome back' });
     await signInAs();
     expect(await screen.findByText('We could not load your account')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Welcome Back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Welcome back' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
-    expect(await screen.findByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 });
 

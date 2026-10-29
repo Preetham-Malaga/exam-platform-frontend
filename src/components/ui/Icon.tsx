@@ -51,6 +51,7 @@ const PATHS = {
   more: 'M12 12h.01M19 12h.01M5 12h.01',
   flag: 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+  video: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
   filter: 'M22 3H2l8 9.5V19l4 2v-8.5z',
 } as const;
 

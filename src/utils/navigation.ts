@@ -247,25 +247,16 @@ export const studentNavigation: NavSection[] = [
   },
 ];
 
+// Platform staff. Only screens that exist are listed; more come with their own screens.
 export const platformNavigation: NavSection[] = [
   {
     items: [
-      { key: 'dashboard', label: 'Dashboard', to: '/platform/dashboard', icon: 'dashboard' },
       {
         key: 'organizations',
         label: 'Organizations',
         to: '/platform/organizations',
         icon: 'building',
       },
-      { key: 'users', label: 'Users', to: '/platform/users', icon: 'users' },
-      { key: 'plans', label: 'Plans', to: '/platform/plans', icon: 'layers' },
-      {
-        key: 'subscriptions',
-        label: 'Subscriptions',
-        to: '/platform/subscriptions',
-        icon: 'check',
-      },
-      { key: 'audit-logs', label: 'Audit Logs', to: '/platform/audit-logs', icon: 'shield' },
     ],
   },
 ];

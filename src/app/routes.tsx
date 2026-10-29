@@ -81,6 +81,7 @@ export const routes: RouteObject[] = [
       { path: '/forgot-password', ...page(() => import('@/pages/auth/ForgotPasswordPage')) },
     ],
   },
+  { path: '/register/pending', ...page(() => import('@/pages/auth/SignupPendingPage')) },
   // Reachable signed in or out: the e-mail links sign the user in first.
   { path: '/verify-email', ...page(() => import('@/pages/auth/VerifyEmailPage')) },
   { path: '/reset-password', ...page(() => import('@/pages/auth/ResetPasswordPage')) },
@@ -91,6 +92,10 @@ export const routes: RouteObject[] = [
         ...page(() => import('@/app/layouts/AppLayout')),
         children: [
           { path: '/app', ...page(() => import('@/pages/app/AppHomePage')) },
+          {
+            path: '/platform/organizations',
+            ...page(() => import('@/pages/platform/PlatformOrganizationsPage')),
+          },
           {
             path: '/org',
             children: [
