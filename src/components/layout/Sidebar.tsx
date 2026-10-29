@@ -120,7 +120,7 @@ export function Sidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <aside
-      className="flex w-full max-w-none flex-col gap-4 rounded-card bg-surface p-3 min-[861px]:max-w-[280px] min-[861px]:flex-[1_1_236px] min-[861px]:px-3 min-[861px]:py-5"
+      className="flex w-full max-w-none flex-col gap-4 rounded-card bg-surface p-3 min-[861px]:sticky min-[861px]:top-5 min-[861px]:max-h-[calc(100vh-40px)] min-[861px]:max-w-[280px] min-[861px]:flex-[1_1_236px] min-[861px]:px-3 min-[861px]:py-5"
       data-testid="sidebar"
       data-open={menuOpen}
     >
@@ -145,14 +145,20 @@ export function Sidebar({
           <Icon name={menuOpen ? 'close' : 'menu'} />
         </button>
       </div>
-      <div className={cn('flex flex-col gap-4', !menuOpen && 'max-[860px]:hidden')}>
-        <SidebarNav
-          sections={sections}
-          {...(user ? { user } : {})}
-          onNavigate={() => setMenuOpen(false)}
-        />
+      <div className={cn('flex min-h-0 flex-1 flex-col gap-4', !menuOpen && 'max-[860px]:hidden')}>
+        {/* The menu scrolls on its own when it is taller than the window; brand and footer stay in view. */}
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+          data-testid="sidebar-scroll"
+        >
+          <SidebarNav
+            sections={sections}
+            {...(user ? { user } : {})}
+            onNavigate={() => setMenuOpen(false)}
+          />
+        </div>
         {user && (
-          <div className="mt-auto flex items-center gap-2.5 border-t border-border px-2 pt-3">
+          <div className="mt-auto flex shrink-0 items-center gap-2.5 border-t border-border px-2 pt-3">
             <Avatar name={user.name} />
             <div className="min-w-0 flex-1">
               <b className="block truncate" data-testid="sidebar-user-name">

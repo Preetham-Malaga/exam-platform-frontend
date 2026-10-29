@@ -241,6 +241,14 @@
     font: inherit;
     color: inherit;
   }
+  /* Prototype links: accent and bold. Links styled as buttons or menu items set their own colour with classes. */
+  :where(a) {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  :where(a):hover {
+    text-decoration: underline;
+  }
   h1,
   h2,
   h3 {

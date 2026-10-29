@@ -307,32 +307,3 @@ export interface StudentPerformance {
   passed: number;
   lastResultAt: string | null;
 }
-export interface Dashboard {
-  totals: {
-    students: number;
-    teachers: number;
-    courses: number;
-    subjects: number;
-    questions: number;
-    publishedQuestions: number;
-    exams: number;
-    publishedExams: number;
-    attemptsInProgress: number;
-  };
-  last30Days: { results: number; averagePercentage: number | null; passRate: number | null };
-  resultsByDay: Array<{ day: string; results: number; passed: number }>;
-  recentResults: Array<{
-    id: string;
-    studentName: string;
-    examName: string;
-    percentage: number;
-    status: string;
-    evaluatedAt: string;
-  }>;
-  topExams: Array<{
-    examId: string;
-    examName: string;
-    attempts: number;
-    averagePercentage: number | null;
-  }>;
-}

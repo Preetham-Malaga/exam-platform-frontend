@@ -11,6 +11,7 @@ import {
   questionService,
 } from '@/services/assessmentService';
 import type { ExamListParams, LeaderboardScope, QuestionListParams } from '@/types/assessment';
+import type { OverviewFilter } from '@/types/overview';
 
 export const assessmentKey = ['assessment'] as const;
 const k = (...parts: unknown[]) => [...assessmentKey, ...parts];
@@ -88,8 +89,13 @@ export const useStudentPerformance = (search: string) =>
     queryKey: k('report', 'student', search),
     queryFn: () => insightService.studentPerformance(search || undefined),
   });
-export const useDashboard = () =>
-  useQuery({ queryKey: k('dashboard'), queryFn: insightService.dashboard });
+/** The owner dashboard in one request; the previous numbers stay on screen while a new filter loads. */
+export const useOverview = (f: OverviewFilter) =>
+  useQuery({
+    queryKey: k('overview', f),
+    queryFn: () => insightService.overview(f),
+    placeholderData: keepPreviousData,
+  });
 
 /** A mutation that refreshes every assessment query when it succeeds. */
 export function useAssessmentMutation<V, R>(fn: (v: V) => Promise<R>) {

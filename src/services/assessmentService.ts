@@ -4,10 +4,10 @@
 
 import { api } from '@/lib/api';
 import { API_PREFIX } from '@/lib/constants';
+import type { Overview, OverviewFilter } from '@/types/overview';
 import type {
   Assignment,
   AvailableExam,
-  Dashboard,
   Exam,
   ExamBody,
   ExamList,
@@ -98,5 +98,6 @@ export const insightService = {
     ),
   studentPerformance: (search?: string) =>
     api.get<{ items: StudentPerformance[] }>(`${P}/reports/student-performance?${qs({ search })}`),
-  dashboard: () => api.get<Dashboard>(`${P}/organizations/current/dashboard`),
+  overview: (f: OverviewFilter) =>
+    api.get<Overview>(`${P}/organizations/current/overview?${qs({ ...f })}`),
 };

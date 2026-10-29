@@ -397,47 +397,126 @@ describe('student exam screen', () => {
 });
 
 describe('insights and dashboard', () => {
-  const dashboard = {
-    totals: {
-      students: 120,
-      teachers: 8,
-      courses: 3,
-      subjects: 12,
-      questions: 240,
-      publishedQuestions: 200,
-      exams: 15,
-      publishedExams: 4,
-      attemptsInProgress: 2,
+  const overview = {
+    filter: { range: '30' },
+    timezone: 'Asia/Kolkata',
+    headline: {
+      students: 124,
+      batches: 4,
+      examsOpen: 2,
+      examsDraft: 2,
+      results: 58,
+      attempts: 58,
+      averagePercentage: 68.7,
+      passed: 5,
+      passRate: 83,
+      liveToday: null,
     },
-    last30Days: { results: 96, averagePercentage: 67.5, passRate: 81.25 },
-    resultsByDay: Array.from({ length: 14 }, (_, i) => ({
-      day: `2026-01-${String(i + 1).padStart(2, '0')}`,
-      results: i,
-      passed: i,
-    })),
+    flow: {
+      courses: { courses: 3, subjects: 5, topics: 10, subjectsWithoutTopics: 0 },
+      questions: { total: 18, published: 14, draft: 4, easy: 7, medium: 7, hard: 4 },
+      exams: { open: 2, draft: 2, closed: 1, attempts: 58 },
+      students: { students: 124, batches: 4, teachers: 3, notInvited: 2, noBatch: 1 },
+      results: { results: 6, averagePercentage: 68.7, passRate: 83, belowPass: 1 },
+    },
+    perDay: [
+      { day: '2026-10-27', results: 2 },
+      { day: '2026-10-28', results: 9 },
+    ],
+    exams: [
+      {
+        id: 'e1',
+        name: 'Machines Mid-Term',
+        code: 'MACHMT',
+        state: 'published',
+        startAt: '2026-10-28T03:30:00Z',
+        endAt: '2099-10-31T18:00:00Z',
+        durationMinutes: 60,
+        courseName: 'B.Tech',
+        questionCount: 3,
+        assignmentCount: 1,
+        students: 81,
+        attempts: 41,
+        averagePercentage: 69,
+      },
+      {
+        id: 'e3',
+        name: 'Exam-02',
+        code: 'EXAM02',
+        state: 'draft',
+        startAt: null,
+        endAt: null,
+        durationMinutes: 60,
+        courseName: 'B.Tech',
+        questionCount: 0,
+        assignmentCount: 0,
+        students: 0,
+        attempts: 0,
+        averagePercentage: null,
+      },
+    ],
     recentResults: [
       {
         id: 'r1',
         studentName: 'Rahul Sen',
-        examName: 'Unit Test 1',
-        percentage: 75,
+        rollNumber: '101',
+        examName: 'Machines Mid-Term',
+        percentage: 88,
         status: 'Passed',
-        evaluatedAt: '2026-01-14T10:00:00Z',
+        evaluatedAt: '2026-10-28T13:31:00Z',
       },
     ],
-    topExams: [{ examId: 'e1', examName: 'Unit Test 1', attempts: 40, averagePercentage: 70 }],
+    topStudents: [],
+    teachers: [],
   };
 
-  it('the owner dashboard shows organization totals, 30-day figures and recent results', async () => {
-    setup('OWNER', { 'GET /api/v1/organizations/current/dashboard': () => ({ data: dashboard }) });
+  it('the owner dashboard shows tiles, the five-step flow, attention items and exams from one call', async () => {
+    setup('OWNER', {
+      'GET /api/v1/organizations/current/overview': () => ({ data: overview }),
+      'GET /api/v1/exams': () => ({ data: page([exam()]) }),
+    });
     renderRoute('/org/dashboard');
-    expect(await screen.findByText('120')).toBeInTheDocument();
-    expect(screen.getByText('81.25%')).toBeInTheDocument();
-    expect(screen.getByText('Rahul Sen')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Unit Test 1' })).toHaveAttribute(
+    expect(await screen.findByTestId('dashboard-tile-students-value')).toHaveTextContent('124');
+    expect(screen.getByTestId('dashboard-tile-pass-rate-value')).toHaveTextContent('83%');
+    expect(screen.getByTestId('dashboard-tile-avg-score-value')).toHaveTextContent('68.7%');
+    expect(screen.getByTestId('dashboard-stage-questions-status')).toHaveTextContent(
+      '4 drafts to review',
+    );
+    expect(screen.getByTestId('dashboard-stage-results-status')).toHaveTextContent(
+      '1 need support',
+    );
+    const attention = screen.getAllByTestId('dashboard-attention-row').map((r) => r.textContent);
+    expect(attention[0]).toContain(
+      'Exam-02 is a draft with no questions, not assigned, no exam window',
+    );
+    expect(attention.join(' ')).toContain('2 students have not been invited');
+    expect(screen.getAllByTestId('dashboard-exam-row')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Machines Mid-Term' })).toHaveAttribute(
       'href',
       '/org/exams/e1',
     );
+    expect(screen.getByTestId('dashboard-stage-courses')).toHaveAttribute('href', '/org/courses');
+    expect(screen.getByText('Rahul Sen')).toBeInTheDocument();
+  });
+
+  it('changing a filter asks the API again and can be reset', async () => {
+    setup('OWNER', {
+      'GET /api/v1/organizations/current/overview': () => ({ data: overview }),
+      'GET /api/v1/exams': () => ({ data: page([exam()]) }),
+    });
+    renderRoute('/org/dashboard');
+    await screen.findByTestId('dashboard-tile-students-value');
+    expect(screen.getByTestId('dashboard-filter-reset-btn')).toBeDisabled();
+    await userEvent.selectOptions(screen.getByTestId('dashboard-filter-date-range-select'), '7');
+    await waitFor(() =>
+      expect(called('GET /api/v1/organizations/current/overview').at(-1)!.query).toMatchObject({
+        range: '7',
+      }),
+    );
+    await userEvent.click(screen.getByTestId('dashboard-filter-reset-btn'));
+    // Back to the default range; its numbers come from the cache, so no new request is needed.
+    expect(screen.getByTestId('dashboard-filter-date-range-select')).toHaveValue('30');
+    expect(screen.getByTestId('dashboard-filter-reset-btn')).toBeDisabled();
   });
 
   it('results open a drawer with each answer next to the correct one', async () => {
