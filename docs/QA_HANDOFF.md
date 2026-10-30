@@ -11,13 +11,13 @@ Branches: frontend `feature/prototype-rebuild`, backend `feature/auth-approval`.
 
 | #   | Step                                                                                                                   | Who       | Command / where                                                                                              |
 | --- | ---------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
-| 1   | **Apply the database updates 043–046.** Without them sign-up, courses, questions, students, batches and learning fail. | Developer | `cd exam-platform-backend` then `npm run migrate`                                                            |
+| 1   | **Apply the database updates 043–047.** Without them sign-up, courses, questions, students, batches and learning fail. | Developer | `cd exam-platform-backend` then `npm run migrate`                                                            |
 | 2   | Create / repair the test accounts                                                                                      | Developer | `npm run seed:e2e` (see `docs/test-accounts.md`)                                                             |
 | 3   | Make a platform admin (approves new organizations)                                                                     | Developer | `node scripts/make-platform-admin.mjs --email <login>`                                                       |
 | 4   | Real e-mail for sign-up and invitations (Supabase's built-in mailer allows only a few e-mails per hour)                | Developer | Supabase → Authentication → Emails → SMTP settings                                                           |
 | 5   | Run the app                                                                                                            | Anyone    | backend: `npm run dev` (port 4000); frontend: `cd tests/frontend` then `npm run dev` → http://localhost:5173 |
 
-All four migrations only **add** tables, columns or permissions; each has an undo script in `supabase/rollbacks/`.
+All migrations (043–047) only **add** tables, columns or permissions; each has an undo script in `supabase/rollbacks/`.
 
 Test logins (password in `tests/frontend/.env.e2e`, never committed):
 `e2e.owner@…`, `e2e.admin@…`, `e2e.teacher@…`, `e2e.student@…` (`@exam-platform.test`).
@@ -80,6 +80,8 @@ Rules that apply everywhere:
 ---
 
 ## 4. Known gaps (not bugs — not built yet)
+
+- **Before `npm run migrate`** the app still works: Batches and Learning say "needs a database update", and the extra course / student / teacher details are not kept (a message says so after saving).
 
 - **Exams to batches:** exams are still assigned by academic unit, subject or student; the student form keeps the Academic unit field for that reason.
 - **Exam form and question form** use the existing fields; the prototype's longer lists (exam security, notifications, question types beyond single-choice / true-false, Bloom level …) are not built.

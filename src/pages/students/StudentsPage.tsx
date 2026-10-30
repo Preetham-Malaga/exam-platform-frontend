@@ -276,7 +276,7 @@ export default function StudentsPage() {
       items.push({
         label: 'Edit',
         testId: 'row-actions-edit-menu-item',
-        onSelect: () => show({ editing: s }),
+        onSelect: () => navigate(`/org/students/${s.id}/edit`),
       });
     if (perms.can('student.create') && !s.userId && s.email)
       items.push({

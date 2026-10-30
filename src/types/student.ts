@@ -17,6 +17,8 @@ export interface Student {
   academicUnitName: string | null;
   batchId?: string | null;
   batchName?: string | null;
+  /** Extra profile fields (migration 047): date of birth, education background, guardian … */
+  details?: Record<string, unknown>;
   /** The linked login; null until the invitation is sent. */
   userId: string | null;
   /** Membership of the linked login (null without a login, or when the caller may not see logins). */
@@ -49,6 +51,7 @@ export interface CreateStudentBody {
   phone: string | null;
   academicUnitId: string | null;
   batchId?: string | null;
+  details?: Record<string, unknown>;
   invite: boolean;
 }
 

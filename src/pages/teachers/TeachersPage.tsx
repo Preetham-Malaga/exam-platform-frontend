@@ -222,11 +222,7 @@ export default function TeachersPage() {
     setPage(1);
   };
   // One inline form, scope panel or confirmation at a time.
-  const show = (next: {
-    editing?: Teacher;
-    scoping?: Teacher;
-    removing?: Teacher;
-  }) => {
+  const show = (next: { editing?: Teacher; scoping?: Teacher; removing?: Teacher }) => {
     setEditing(next.editing ?? null);
     setScoping(next.scoping ?? null);
     setRemoving(next.removing ?? null);
@@ -239,7 +235,7 @@ export default function TeachersPage() {
       items.push({
         label: 'Edit',
         testId: 'row-actions-edit-menu-item',
-        onSelect: () => show({ editing: t }),
+        onSelect: () => navigate(`/org/teachers/${t.id}/edit`),
       });
     if (perms.can('teacher.assign_scope') && t.userId)
       items.push({

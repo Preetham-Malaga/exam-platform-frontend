@@ -20,6 +20,8 @@ export interface Teacher {
   /** Membership of the linked login: active, suspended ... (null without a login). */
   accountStatus: string | null;
   scopeCount: number;
+  /** Extra profile fields (migration 047): date of birth, education, professional details … */
+  details?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +55,7 @@ export interface CreateTeacherBody {
   fullName: string;
   email: string | null;
   phone: string | null;
+  details?: Record<string, unknown>;
   invite: boolean;
 }
 

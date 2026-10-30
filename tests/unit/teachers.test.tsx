@@ -111,19 +111,28 @@ describe('Teachers page', () => {
     expect(await actions('Anil Das')).toEqual(['Edit', 'Send invitation', 'Remove']);
   });
 
-  it('adds a teacher and sends the invitation', async () => {
+  it('adds a teacher on its own page with professional and education details, and sends the invitation', async () => {
     setup('OWNER', {
-      'POST /api/v1/teachers': ({ body }) => ({ status: 201, data: T('t9', body.fullName) }),
+      'POST /api/v1/teachers': ({ body }) => ({
+        status: 201,
+        data: { ...T('t9', body.fullName), details: body.details },
+      }),
     });
     renderRoute('/org/teachers');
     await screen.findByText('Ravi Kumar');
-    await userEvent.click(screen.getByRole('button', { name: 'Add teacher' }));
-    const dialog = await screen.findByRole('region', { name: 'Add a teacher' });
-    expect(within(dialog).getByLabelText(/Send an invitation to sign in/)).toBeChecked();
-    await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Priya Shah');
-    await userEvent.type(within(dialog).getByLabelText(/Employee code/), 'EMP-77');
-    await userEvent.type(within(dialog).getByLabelText(/Email/), 'priya@college.test');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Add teacher' }));
+    await userEvent.click(screen.getByTestId('teachers-add-btn'));
+    await screen.findByTestId('page-form-teacher');
+    expect(screen.getByTestId('teacher-form-send-invite-checkbox')).toBeChecked();
+    await userEvent.type(screen.getByTestId('teacher-form-full-name-input'), 'Priya Shah');
+    await userEvent.type(screen.getByTestId('teacher-form-employee-id-input'), 'EMP-77');
+    await userEvent.type(screen.getByTestId('teacher-form-email-input'), 'priya@college.test');
+    await userEvent.selectOptions(
+      screen.getByTestId('teacher-form-designation-select'),
+      'Lecturer',
+    );
+    await userEvent.type(screen.getByTestId('teacher-form-qualification-input'), 'M.Tech');
+    await userEvent.type(screen.getByTestId('teacher-form-experience-input'), '6');
+    await userEvent.click(screen.getByTestId('teacher-form-save-btn'));
     await waitFor(() => expect(called('POST /api/v1/teachers')).toHaveLength(1));
     expect(called('POST /api/v1/teachers')[0]!.body).toEqual({
       employeeCode: 'EMP-77',
@@ -131,6 +140,12 @@ describe('Teachers page', () => {
       email: 'priya@college.test',
       phone: null,
       invite: true,
+      details: {
+        designation: 'Lecturer',
+        employmentType: 'Full-time',
+        experienceYears: 6,
+        qualification: 'M.Tech',
+      },
     });
     expect(
       await screen.findByText('An invitation was sent to priya@college.test.'),
@@ -139,27 +154,37 @@ describe('Teachers page', () => {
 
   it('an invitation needs an e-mail address (checked before sending)', async () => {
     setup('OWNER');
-    renderRoute('/org/teachers');
-    await screen.findByText('Ravi Kumar');
-    await userEvent.click(screen.getByRole('button', { name: 'Add teacher' }));
-    const dialog = await screen.findByRole('region', { name: 'Add a teacher' });
-    await userEvent.type(within(dialog).getByLabelText(/Full name/), 'No Mail');
-    await userEvent.type(within(dialog).getByLabelText(/Employee code/), 'EMP-1');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Add teacher' }));
-    expect(await within(dialog).findByText(/needed to send the invitation/)).toBeInTheDocument();
+    renderRoute('/org/teachers/new');
+    await screen.findByTestId('page-form-teacher');
+    await userEvent.type(screen.getByTestId('teacher-form-full-name-input'), 'No Mail');
+    await userEvent.type(screen.getByTestId('teacher-form-employee-id-input'), 'EMP-1');
+    await userEvent.click(screen.getByTestId('teacher-form-save-btn'));
+    expect(await screen.findByTestId('teacher-form-email-error')).toHaveTextContent(
+      'needed to send the invitation',
+    );
     expect(called('POST /api/v1/teachers')).toHaveLength(0);
   });
 
-  it('the sign-in e-mail of a linked teacher is shown but not sent when editing', async () => {
-    setup('OWNER', { 'PATCH /api/v1/teachers/t1': () => ({ data: teachers[0] }) });
+  it('editing opens its own page; the sign-in e-mail of a linked teacher is shown but not sent', async () => {
+    setup('OWNER', {
+      'GET /api/v1/teachers/t1': () => ({ data: { ...teachers[0], scopes: [] } }),
+      'PATCH /api/v1/teachers/t1': () => ({ data: teachers[0] }),
+    });
     renderRoute('/org/teachers');
     await screen.findByText('Ravi Kumar');
     await actions('Ravi Kumar');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
-    const dialog = await screen.findByRole('region', { name: 'Edit Ravi Kumar' });
-    expect(within(dialog).getByLabelText(/Email/)).toBeDisabled();
-    await userEvent.selectOptions(within(dialog).getByLabelText(/Status/), 'inactive');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await screen.findByTestId('page-form-teacher');
+    await waitFor(() =>
+      expect(screen.getByTestId('teacher-form-full-name-input')).toHaveValue('Ravi Kumar'),
+    );
+    expect(screen.getByTestId('teacher-form-email-input')).toBeDisabled();
+    await userEvent.click(
+      screen
+        .getAllByTestId('teacher-form-status-radio')
+        .find((b) => b.dataset.value === 'Inactive')!,
+    );
+    await userEvent.click(screen.getByTestId('teacher-form-save-btn'));
     await waitFor(() => expect(called('PATCH /api/v1/teachers/t1')).toHaveLength(1));
     const body = called('PATCH /api/v1/teachers/t1')[0]!.body;
     expect(body).toMatchObject({ status: 'inactive', fullName: 'Ravi Kumar' });

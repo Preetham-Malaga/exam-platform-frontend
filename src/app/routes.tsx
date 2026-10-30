@@ -276,7 +276,20 @@ export const routes: RouteObject[] = [
                       {
                         path: 'students/new',
                         lazy: async () => ({
-                          Component: (await import('@/pages/forms/AddPages')).StudentNewPage,
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .StudentFormPage,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="student.update" />,
+                    children: [
+                      {
+                        path: 'students/:studentId/edit',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .StudentFormPage,
                         }),
                       },
                     ],
@@ -309,7 +322,20 @@ export const routes: RouteObject[] = [
                       {
                         path: 'teachers/new',
                         lazy: async () => ({
-                          Component: (await import('@/pages/forms/AddPages')).TeacherNewPage,
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .TeacherFormPage,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="teacher.update" />,
+                    children: [
+                      {
+                        path: 'teachers/:teacherId/edit',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .TeacherFormPage,
                         }),
                       },
                     ],

@@ -29,6 +29,7 @@ export const studentService = {
     if (p.noBatch) q.set('noBatch', 'true');
     return api.get<StudentList>(`${P}?${q.toString()}`);
   },
+  get: (id: string) => api.get<Student>(`${P}/${id}`),
   create: (b: CreateStudentBody) => api.post<Student>(P, b),
   invite: (id: string) => api.post<Student>(`${P}/${id}/invite`),
   update: (id: string, b: UpdateStudentBody) => api.patch<Student>(`${P}/${id}`, b),

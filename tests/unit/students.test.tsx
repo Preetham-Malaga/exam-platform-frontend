@@ -170,18 +170,42 @@ describe('Students page', () => {
     expect(await items('Priya Das')).toEqual(['Edit', 'Remove']);
   });
 
-  it('adds a student on a unit', async () => {
+  it('adds a student on its own page with education and guardian details', async () => {
     setup('OWNER', {
-      'POST /api/v1/students': ({ body }) => ({ status: 201, data: S('009', body.fullName) }),
+      'POST /api/v1/students': ({ body }) => ({
+        status: 201,
+        data: { ...S('009', body.fullName), details: body.details },
+      }),
+      'GET /api/v1/batches': () => ({ data: { items: [], studentsWithoutBatch: 0 } }),
     });
     renderRoute('/org/students');
     await screen.findByText('Anita Verma');
-    await userEvent.click(screen.getByRole('button', { name: 'Add student' }));
-    const dialog = await screen.findByRole('region', { name: 'Add a student' });
-    await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Kiran Rao');
-    await userEvent.type(within(dialog).getByLabelText(/Roll number/), '21EE009');
-    await userEvent.selectOptions(within(dialog).getByLabelText(/Academic unit/), 'B.Tech / EEE');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Add student' }));
+    await userEvent.click(screen.getByTestId('students-add-btn'));
+    await screen.findByTestId('page-form-student');
+    await userEvent.click(screen.getByTestId('student-form-save-btn'));
+    expect(await screen.findByTestId('student-form-error-summary')).toHaveTextContent(
+      'Fix 2 fields',
+    );
+    await userEvent.type(screen.getByTestId('student-form-full-name-input'), 'Kiran Rao');
+    await userEvent.type(screen.getByTestId('student-form-roll-number-input'), '21EE009');
+    await userEvent.selectOptions(screen.getByTestId('student-form-gender-select'), 'Female');
+    await userEvent.type(screen.getByTestId('student-form-dob-input'), '2006-05-01');
+    await userEvent.type(screen.getByTestId('student-form-board-input'), 'CBSE');
+    await userEvent.type(screen.getByTestId('student-form-year-of-passing-input'), '2024');
+    await userEvent.type(screen.getByTestId('student-form-previous-result-input'), '91.5');
+    await userEvent.type(screen.getByTestId('student-form-guardian-name-input'), 'Suresh Rao');
+    await userEvent.type(screen.getByTestId('student-form-guardian-mobile-input'), '12345');
+    await waitFor(() =>
+      expect(screen.getByTestId('student-form-unit-select')).toContainHTML('B.Tech / EEE'),
+    );
+    await userEvent.selectOptions(screen.getByTestId('student-form-unit-select'), 'B.Tech / EEE');
+    await userEvent.click(screen.getByTestId('student-form-save-btn'));
+    expect(await screen.findByTestId('student-form-guardian-mobile-error')).toHaveTextContent(
+      '10-digit',
+    );
+    await userEvent.clear(screen.getByTestId('student-form-guardian-mobile-input'));
+    await userEvent.type(screen.getByTestId('student-form-guardian-mobile-input'), '98480 12345');
+    await userEvent.click(screen.getByTestId('student-form-save-btn'));
     await waitFor(() => expect(called('POST /api/v1/students')).toHaveLength(1));
     expect(called('POST /api/v1/students')[0]!.body).toEqual({
       rollNumber: '21EE009',
@@ -189,9 +213,19 @@ describe('Students page', () => {
       email: null,
       phone: null,
       academicUnitId: 'u2',
-      batchId: null,
       invite: false,
+      details: {
+        gender: 'Female',
+        dateOfBirth: '2006-05-01',
+        board: 'CBSE',
+        yearOfPassing: 2024,
+        previousResult: 91.5,
+        guardianName: 'Suresh Rao',
+        guardianMobile: '98480 12345',
+        updatesVia: ['WhatsApp'],
+      },
     });
+    expect(await screen.findByTestId('students-add-btn')).toBeInTheDocument();
   });
 
   it('imports a CSV: check first (nothing saved), see problems by file line, then import', async () => {
