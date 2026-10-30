@@ -66,13 +66,13 @@ Tests: Vitest + Testing Library; Playwright e2e with page objects (`tests/e2e`).
 | 1   | Theme tokens, layout shell, grouped menu                                            | ☑      |
 | 2   | Auth: remove Google, fix organization creation, roles and invites, pending approval | ☑      |
 | 3   | Courses (list + course/subject/topic screens)                                       | ☑      |
-| 4   | Question Bank                                                                       | ◐      |
+| 4   | Question Bank                                                                       | ☑      |
 | 5   | Exams                                                                               | ◐      |
-| 6   | Dashboard + summary endpoint                                                        | ☐      |
-| 7   | People (students, teachers, batches, admins)                                        | ☐      |
-| 8   | Learning (live, recorded, materials)                                                | ☐      |
+| 6   | Dashboard + summary endpoint                                                        | ☑      |
+| 7   | People (students, teachers, batches, admins)                                        | ◐      |
+| 8   | Learning (live, recorded, materials)                                                | ☑      |
 | 9   | Results, leaderboard, reports                                                       | ☐      |
-| 10  | Settings, theme, date format                                                        | ☐      |
+| 10  | Settings, theme, date format                                                        | ◐      |
 | 11  | Performance pass                                                                    | ☐      |
 | 12  | Locator audit (`docs/LOCATORS.md` vs the prototype)                                 | ☐      |
 
