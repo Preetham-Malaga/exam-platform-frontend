@@ -103,6 +103,9 @@ describe('navigation', () => {
       'Courses',
       'Question Bank',
       'Exams',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
       'Results',
     ]);
     expect(labels(filterNavigation(navigationFor(asMe(student)), (p) => can(student, p)))).toEqual([
@@ -110,6 +113,9 @@ describe('navigation', () => {
       'My Exams',
       'My Results',
       'Leaderboard',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
     ]);
     expect(navigationFor({ isPlatformAdmin: true, roles: ['ORGANIZATION_OWNER'] })).toBe(
       platformNavigation,

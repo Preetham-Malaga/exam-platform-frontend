@@ -119,6 +119,9 @@ describe('the menu follows the role (UX only)', () => {
       'Courses',
       'Question Bank',
       'Exams',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
       'Results',
     ]);
   });
@@ -131,6 +134,9 @@ describe('the menu follows the role (UX only)', () => {
       'My Exams',
       'My Results',
       'Leaderboard',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
     ]);
   });
   it('platform staff get the platform menu, not an organization menu', async () => {
@@ -409,7 +415,7 @@ describe('Invite admin (owner only)', () => {
 });
 
 describe('Roles & permissions page', () => {
-  it('shows the matrix from the server: owner has everything, admin lacks organization.update, student has two', async () => {
+  it('shows the matrix from the server: owner has everything, admin lacks organization.update, student has three', async () => {
     setup('OWNER');
     renderRoute('/org/settings/permissions');
     expect(await screen.findByRole('heading', { name: 'Roles & permissions' })).toBeInTheDocument();
@@ -432,7 +438,7 @@ describe('Roles & permissions page', () => {
     expect(
       within(table).getByRole('img', { name: 'Teacher cannot user.update' }),
     ).toBeInTheDocument();
-    expect(within(table).getAllByRole('img', { name: /^Student can / })).toHaveLength(2);
+    expect(within(table).getAllByRole('img', { name: /^Student can / })).toHaveLength(3);
   });
   it('/org/settings redirects to it, and an admin may read it', async () => {
     setup('ADMIN');

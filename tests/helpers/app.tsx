@@ -104,8 +104,10 @@ export const PERMS = {
     'leaderboard.read',
     'notification.read',
     'organization.read',
+    'learning.read',
+    'learning.manage',
   ],
-  STUDENT: ['leaderboard.read', 'notification.read'],
+  STUDENT: ['leaderboard.read', 'notification.read', 'learning.read'],
 };
 const ROLE_CODE = {
   OWNER: 'ORGANIZATION_OWNER',

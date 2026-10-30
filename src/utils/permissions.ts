@@ -53,6 +53,8 @@ export const PERMISSIONS = [
   'subscription.read',
   'notification.read',
   'audit.read',
+  'learning.read',
+  'learning.manage',
 ] as const;
 export type PermissionCode = (typeof PERMISSIONS)[number];
 

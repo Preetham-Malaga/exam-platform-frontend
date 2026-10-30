@@ -71,6 +71,33 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
+    id: 'learning',
+    title: 'Learning',
+    items: [
+      {
+        key: 'live',
+        label: 'Live Classes',
+        to: '/org/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/org/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/org/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
+      },
+    ],
+  },
+  {
     id: 'people',
     title: 'People',
     items: [
@@ -191,6 +218,33 @@ export const teacherNavigation: NavSection[] = [
     ],
   },
   {
+    id: 'learning',
+    title: 'Learning',
+    items: [
+      {
+        key: 'live',
+        label: 'Live Classes',
+        to: '/teacher/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/teacher/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/teacher/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
+      },
+    ],
+  },
+  {
     id: 'insights',
     title: 'Insights',
     items: [
@@ -221,6 +275,33 @@ export const studentNavigation: NavSection[] = [
         to: '/student/leaderboard',
         icon: 'trophy',
         anyPermission: ['leaderboard.read'],
+      },
+    ],
+  },
+  {
+    id: 'learning',
+    title: 'Learning',
+    items: [
+      {
+        key: 'live',
+        label: 'Live Classes',
+        to: '/student/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/student/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/student/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
       },
     ],
   },

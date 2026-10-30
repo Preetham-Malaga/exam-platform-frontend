@@ -132,6 +132,39 @@ const assessmentRoutes: RouteObject[] = [
   },
 ];
 
+const named = <T extends Record<string, unknown>>(load: () => Promise<T>, name: keyof T) => ({
+  lazy: async () => ({ Component: (await load())[name] as React.ComponentType }),
+});
+const learningPages = () => import('@/pages/learning/LearningPages');
+const learningForms = () => import('@/pages/learning/LearningFormPage');
+
+/** Learning (live classes, recordings, materials): read for everyone with learning.read, add/edit with learning.manage. */
+const learningRoutes = (manage: boolean): RouteObject[] => [
+  {
+    element: <RequirePermission permission="learning.read" />,
+    children: [
+      { path: 'live', ...named(learningPages, 'LiveClassesPage') },
+      { path: 'recorded', ...named(learningPages, 'RecordedPage') },
+      { path: 'materials', ...named(learningPages, 'MaterialsPage') },
+    ],
+  },
+  ...(manage
+    ? [
+        {
+          element: <RequirePermission permission="learning.manage" />,
+          children: [
+            { path: 'live/new', ...named(learningForms, 'LiveFormPage') },
+            { path: 'live/:itemId/edit', ...named(learningForms, 'LiveFormPage') },
+            { path: 'recorded/new', ...named(learningForms, 'RecordingFormPage') },
+            { path: 'recorded/:itemId/edit', ...named(learningForms, 'RecordingFormPage') },
+            { path: 'materials/new', ...named(learningForms, 'MaterialFormPage') },
+            { path: 'materials/:itemId/edit', ...named(learningForms, 'MaterialFormPage') },
+          ],
+        },
+      ]
+    : []),
+];
+
 /** The student area. The API returns only the student's own exams and results. */
 const studentRoutes: RouteObject[] = [
   { index: true, element: <Navigate to="/student/dashboard" replace /> },
@@ -140,6 +173,7 @@ const studentRoutes: RouteObject[] = [
   { path: 'attempts/:attemptId', ...page(() => import('@/pages/student/ExamRunnerPage')) },
   { path: 'results', ...page(() => import('@/pages/student/StudentResultsPage')) },
   { path: 'results/:attemptId', ...page(() => import('@/pages/student/ResultReviewPage')) },
+  ...learningRoutes(false),
   {
     element: <RequirePermission permission="leaderboard.read" />,
     children: [{ path: 'leaderboard', ...page(() => import('@/pages/insights/LeaderboardPage')) }],
@@ -202,6 +236,7 @@ export const routes: RouteObject[] = [
               { path: 'academic', element: <ToCourses /> },
               ...catalogRoutes,
               ...assessmentRoutes,
+              ...learningRoutes(true),
               {
                 element: <RequirePermission permission="exam.assign" />,
                 children: [
@@ -285,6 +320,7 @@ export const routes: RouteObject[] = [
               { index: true, element: <Navigate to="/teacher/dashboard" replace /> },
               ...catalogRoutes,
               ...assessmentRoutes,
+              ...learningRoutes(true),
             ],
           },
           { path: '/student', children: studentRoutes },
