@@ -89,6 +89,13 @@ export const orgNavigation: NavSection[] = [
         anyPermission: ['teacher.read'],
       },
       {
+        key: 'batches',
+        label: 'Batches',
+        to: '/org/batches',
+        icon: 'layers',
+        anyPermission: ['student.read'],
+      },
+      {
         key: 'admins',
         label: 'Admins',
         to: '/org/admins',

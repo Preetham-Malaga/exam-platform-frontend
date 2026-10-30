@@ -15,6 +15,8 @@ export interface Student {
   status: 'active' | 'inactive';
   academicUnitId: string | null;
   academicUnitName: string | null;
+  batchId?: string | null;
+  batchName?: string | null;
   /** The linked login; null until the invitation is sent. */
   userId: string | null;
   /** Membership of the linked login (null without a login, or when the caller may not see logins). */
@@ -33,6 +35,9 @@ export interface StudentListParams {
   /** The unit and every unit below it. */
   academicUnitId?: string;
   unplaced?: boolean;
+  batchId?: string;
+  /** Only students without a batch. */
+  noBatch?: boolean;
   sort?: 'rollNumber' | 'fullName' | 'createdAt';
   order?: 'asc' | 'desc';
 }
@@ -43,6 +48,7 @@ export interface CreateStudentBody {
   email: string | null;
   phone: string | null;
   academicUnitId: string | null;
+  batchId?: string | null;
   invite: boolean;
 }
 

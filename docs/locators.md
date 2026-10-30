@@ -189,6 +189,10 @@ Constants: `tests/locators/questions.ts`. Course cards `questions-course-card` (
 
 Constants: `tests/locators/exams.ts`. Tabs `exams-tab-draft` / `-published` / `-closed` with `-count` (`?tab=` in the URL; `/org/exams/published` redirects to the Published tab). Rows `exam-row` (`data-entity-id`, `data-entity-code`, `data-state`) with `exam-row-open-btn`, drafts: `exam-row-edit-btn`, `exam-row-delete-btn` → `exams-delete-confirm`; others: `exam-row-view-btn`, `exam-row-unpublish-btn` → `exams-unpublish-confirm` (no attempts yet) or `exam-row-locked-badge`, `exam-row-duplicate-btn`. Exam page: `exam-duplicate-btn` added.
 
+## Batches (`/org/batches`, prototype `vBatches`)
+
+Constants: `tests/locators/batches.ts`. Tiles `batch-tile` (`data-entity-id`, `data-entity-code`, `data-state`) with `batch-tile-students-link` (→ `/org/students?batch=<id>`), `batch-tile-edit-btn`, `batch-tile-delete-btn` → `batches-delete-confirm`; `batches-add-btn`, `batches-add-tile-btn`, `batches-summary`, `batches-no-batch-warning` / `-link` (→ `?batch=none`). Form page `page-form-batch`, prefix `batch-form`: name, code, course, academic-year, year-sem, section, mode (radio), timing, start-date, end-date, capacity, class-teacher, room, status (radio). Students: `students-filter-batch-select`, `student-row-no-batch-badge`, `student-form-batch-select`; menu `nav-batches-link`.
+
 ## Add pages
 
 Every Add button opens its own page; the form inside keeps the screen's ids. Roots: `page-form-question` (`/org/questions/new`, `/org/questions/:id/edit`), `page-form-exam` (`/org/exams/new`), `page-form-student` (`/org/students/new`), `page-form-teacher` (`/org/teachers/new`), `page-form-admin` (`/org/admins/new`). Breadcrumb `breadcrumb-link` goes back to the list.

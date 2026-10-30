@@ -25,6 +25,7 @@ export function useStudentMutation<V, R>(fn: (v: V) => Promise<R>) {
     // Refresh lists in the background: the form closes as soon as the save succeeds instead of waiting for the reload.
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: studentsKey });
+      void qc.invalidateQueries({ queryKey: ['batches'] });
       void qc.invalidateQueries({ queryKey: usersKey });
       void qc.invalidateQueries({ queryKey: academicKey });
     },

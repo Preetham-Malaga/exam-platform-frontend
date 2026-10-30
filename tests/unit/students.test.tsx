@@ -189,6 +189,7 @@ describe('Students page', () => {
       email: null,
       phone: null,
       academicUnitId: 'u2',
+      batchId: null,
       invite: false,
     });
   });

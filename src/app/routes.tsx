@@ -227,11 +227,27 @@ export const routes: RouteObject[] = [
                 element: <RequirePermission permission="student.read" />,
                 children: [
                   { path: 'students', ...page(() => import('@/pages/students/StudentsPage')) },
+                  { path: 'batches', ...page(() => import('@/pages/students/BatchesPage')) },
                   {
                     path: 'students/new',
                     lazy: async () => ({
                       Component: (await import('@/pages/forms/AddPages')).StudentNewPage,
                     }),
+                  },
+                ],
+              },
+              {
+                element: <RequirePermission permission="student.create" />,
+                children: [
+                  { path: 'batches/new', ...page(() => import('@/pages/students/BatchFormPage')) },
+                ],
+              },
+              {
+                element: <RequirePermission permission="student.update" />,
+                children: [
+                  {
+                    path: 'batches/:batchId/edit',
+                    ...page(() => import('@/pages/students/BatchFormPage')),
                   },
                 ],
               },

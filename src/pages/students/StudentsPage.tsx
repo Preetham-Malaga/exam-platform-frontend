@@ -3,7 +3,7 @@
 //      permissions (UX only); the API and RLS enforce every rule.
 // DEPENDS ON: features/students/*, features/academic (unit tree), shared table/form/dialog components.
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -21,6 +21,7 @@ import { Icon } from '@/components/ui/Icon';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useUnitTree } from '@/features/academic/hooks';
 import { unitOptions } from '@/features/academic/tree';
+import { useBatches } from '@/features/batches/batches';
 import { errorText } from '@/features/academic/ui';
 import { Can } from '@/features/auth/Can';
 import { LoginBadge } from '@/features/people/LoginBadge';
@@ -54,6 +55,7 @@ export function StudentForm({
   className?: string;
 }) {
   const { toast } = useToast();
+  const batches = useBatches();
   const create = useStudentMutation((v: StudentValues) =>
     studentService.create({
       rollNumber: v.rollNumber,
@@ -61,6 +63,7 @@ export function StudentForm({
       email: v.email || null,
       phone: v.phone || null,
       academicUnitId: v.academicUnitId || null,
+      batchId: v.batchId || null,
       invite: v.invite,
     }),
   );
@@ -75,6 +78,7 @@ export function StudentForm({
       email: student?.email ?? '',
       phone: student?.phone ?? '',
       academicUnitId: student?.academicUnitId ?? '',
+      batchId: student?.batchId ?? '',
       invite: false,
       status: student?.status ?? 'active',
     },
@@ -95,6 +99,7 @@ export function StudentForm({
             fullName: v.fullName,
             phone: v.phone || null,
             academicUnitId: v.academicUnitId || null,
+            batchId: v.batchId || null,
             status: v.status,
             // a linked student signs in with this address: it is shown but not editable
             ...(student.userId ? {} : { email: v.email || null }),
@@ -171,6 +176,14 @@ export function StudentForm({
           {...form.register('rollNumber')}
         />
         <Select
+          label="Batch"
+          placeholder="No batch"
+          hint="Classes and materials reach students through their batch."
+          options={(batches.data?.items ?? []).map((b) => ({ value: b.id, label: b.name }))}
+          data-testid="student-form-batch-select"
+          {...form.register('batchId')}
+        />
+        <Select
           label="Academic unit"
           placeholder="Not placed yet"
           hint="Exams assigned to this unit (or a unit above it) reach the student."
@@ -220,6 +233,10 @@ export default function StudentsPage() {
   const perms = usePermissions();
   const [search, setSearch] = useState('');
   const [unit, setUnit] = useState('');
+  const [params, setParams] = useSearchParams();
+  const batch = params.get('batch') ?? '';
+  const setBatch = (v: string) => setParams(v ? { batch: v } : {}, { replace: true });
+  const batchList = useBatches();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'rollNumber', order: 'asc' });
@@ -237,6 +254,7 @@ export default function StudentsPage() {
     ...(search ? { search } : {}),
     ...(status ? { status: status as 'active' | 'inactive' } : {}),
     ...(unit === UNPLACED ? { unplaced: true } : unit ? { academicUnitId: unit } : {}),
+    ...(batch === 'none' ? { noBatch: true } : batch ? { batchId: batch } : {}),
   });
   const invite = useStudentMutation((id: string) => studentService.invite(id));
   const remove = useStudentMutation((id: string) => studentService.remove(id));
@@ -245,11 +263,7 @@ export default function StudentsPage() {
     setPage(1);
   };
   // One inline form or confirmation at a time.
-  const show = (next: {
-    importing?: boolean;
-    editing?: Student;
-    removing?: Student;
-  }) => {
+  const show = (next: { importing?: boolean; editing?: Student; removing?: Student }) => {
     setImporting(Boolean(next.importing));
     setEditing(next.editing ?? null);
     setRemoving(next.removing ?? null);
@@ -327,10 +341,11 @@ export default function StudentsPage() {
       <ImportPanel open={importing} onClose={closeForm} className="mb-4" />
       <Card padded={false}>
         <FilterBar
-          canClear={Boolean(search || unit || status)}
+          canClear={Boolean(search || unit || status || batch)}
           onClear={() =>
             reset(() => {
               setSearch('');
+              setBatch('');
               setUnit('');
               setStatus('');
             })
@@ -342,6 +357,19 @@ export default function StudentsPage() {
             placeholder="Search name, roll no. or email"
             label="Search students"
           />
+          <div className="w-56">
+            <Select
+              label="Batch"
+              placeholder="All batches"
+              value={batch}
+              options={[
+                { value: 'none', label: 'No batch' },
+                ...(batchList.data?.items ?? []).map((b) => ({ value: b.id, label: b.name })),
+              ]}
+              onChange={(ev) => reset(() => setBatch(ev.target.value))}
+              data-testid="students-filter-batch-select"
+            />
+          </div>
           <div className="w-60">
             <Select
               label="Unit"
@@ -390,6 +418,19 @@ export default function StudentsPage() {
                   <p className="text-xs text-muted">{s.email ?? 'No e-mail'}</p>
                 </div>
               ),
+            },
+            {
+              key: 'batch',
+              header: 'Batch',
+              cell: (s) =>
+                s.batchName ?? (
+                  <span
+                    className="inline-flex rounded-full bg-butter px-2.5 py-1 text-xs font-bold text-butter-ink"
+                    data-testid="student-row-no-batch-badge"
+                  >
+                    No batch
+                  </span>
+                ),
             },
             { key: 'unit', header: 'Unit', cell: (s) => s.academicUnitName ?? '—' },
             {
