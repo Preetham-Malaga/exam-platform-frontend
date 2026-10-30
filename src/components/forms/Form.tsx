@@ -12,10 +12,11 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '@/utils/cn';
+import { testIdBase } from '@/utils/testid';
 
 const control =
-  'w-full rounded-lg border bg-card px-3 text-sm text-text placeholder:text-muted/70 transition-colors ' +
-  'focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/40 disabled:cursor-not-allowed disabled:bg-background';
+  'w-full min-w-0 rounded-input border-[1.5px] bg-surface-2 px-3.5 text-ink placeholder:text-muted/80 ' +
+  'focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-focus disabled:cursor-not-allowed disabled:opacity-70';
 
 interface FieldShellProps {
   label: string;
@@ -23,6 +24,8 @@ interface FieldShellProps {
   hint?: string;
   required?: boolean;
   className?: string;
+  /** Goes on the control itself; its -error and -hint messages get matching ids (login-email-input → login-email-error). */
+  'data-testid'?: string;
 }
 
 /** Wraps a control with a label, hint and error message; returns ids for aria wiring. */
@@ -32,19 +35,21 @@ export function Field({
   hint,
   required,
   className,
+  'data-testid': testId,
   children,
 }: FieldShellProps & {
   children: (a: { id: string; describedBy?: string; invalid: boolean }) => ReactNode;
 }) {
   const id = useId();
+  const base = testIdBase(testId);
   const describedBy =
     [error ? `${id}-err` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
-      <label htmlFor={id} className="text-[13px] font-medium text-text">
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+      <label htmlFor={id} className="text-xs font-bold text-muted">
         {label}
         {required && (
-          <span className="text-error" aria-hidden="true">
+          <span className="text-danger" aria-hidden="true">
             {' '}
             *
           </span>
@@ -52,12 +57,21 @@ export function Field({
       </label>
       {children({ id, ...(describedBy ? { describedBy } : {}), invalid: Boolean(error) })}
       {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-muted">
+        <p
+          id={`${id}-hint`}
+          className="text-xs font-semibold text-muted"
+          data-testid={base ? `${base}-hint` : undefined}
+        >
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-err`} role="alert" className="text-xs text-error">
+        <p
+          id={`${id}-err`}
+          role="alert"
+          className="text-xs font-semibold text-danger"
+          data-testid={base ? `${base}-error` : undefined}
+        >
           {error}
         </p>
       )}
@@ -74,11 +88,15 @@ export const Input = forwardRef<
       /** Interactive element inside the field, on the right (e.g. a show-password button). */
       rightSlot?: ReactNode;
     }
->(function Input({ label, error, hint, required, className, leftIcon, rightSlot, ...rest }, ref) {
+>(function Input(
+  { label, error, hint, required, className, leftIcon, rightSlot, 'data-testid': testId, ...rest },
+  ref,
+) {
   return (
     <Field
       label={label}
       error={error}
+      data-testid={testId}
       {...(hint ? { hint } : {})}
       {...(required ? { required } : {})}
       {...(className ? { className } : {})}
@@ -98,11 +116,12 @@ export const Input = forwardRef<
             aria-required={required || undefined}
             className={cn(
               control,
-              'h-10',
+              'h-[46px]',
               Boolean(leftIcon) && 'pl-10',
               Boolean(rightSlot) && 'pr-11',
               invalid ? 'border-error' : 'border-border',
             )}
+            data-testid={testId}
             {...rest}
           />
           {rightSlot && (
@@ -120,6 +139,7 @@ export const PasswordInput = forwardRef<
   Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & FieldShellProps & { leftIcon?: ReactNode }
 >(function PasswordInput(props, ref) {
   const [visible, setVisible] = useState(false);
+  const base = testIdBase(props['data-testid']);
   return (
     <Input
       ref={ref}
@@ -131,6 +151,7 @@ export const PasswordInput = forwardRef<
           className="rounded-md p-1.5 text-muted hover:bg-background hover:text-text"
           aria-label={visible ? 'Hide password' : 'Show password'}
           aria-pressed={visible}
+          data-testid={base ? `${base}-toggle-btn` : undefined}
           onClick={() => setVisible((v) => !v)}
         >
           <EyeIcon off={visible} />
@@ -170,11 +191,18 @@ export const Select = forwardRef<
       options: ReadonlyArray<{ value: string; label: string }>;
       placeholder?: string;
     }
->(function Select({ label, error, hint, required, className, options, placeholder, ...rest }, ref) {
+>(function Select(
+  { label, error, hint, required, className, options, placeholder, 'data-testid': testId, ...rest },
+  ref,
+) {
+  const base = testIdBase(testId);
+  // Every option shares one id; QA picks one by its data-value, never by its visible text.
+  const optionId = base ? `${base}-option` : undefined;
   return (
     <Field
       label={label}
       error={error}
+      data-testid={testId}
       {...(hint ? { hint } : {})}
       {...(required ? { required } : {})}
       {...(className ? { className } : {})}
@@ -186,12 +214,17 @@ export const Select = forwardRef<
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           aria-required={required || undefined}
-          className={cn(control, 'h-10', invalid ? 'border-error' : 'border-border')}
+          className={cn(control, 'h-[46px]', invalid ? 'border-error' : 'border-border')}
+          data-testid={testId}
           {...rest}
         >
-          {placeholder !== undefined && <option value="">{placeholder}</option>}
+          {placeholder !== undefined && (
+            <option value="" data-testid={optionId} data-value="">
+              {placeholder}
+            </option>
+          )}
           {options.map((o) => (
-            <option key={o.value} value={o.value}>
+            <option key={o.value} value={o.value} data-testid={optionId} data-value={o.value}>
               {o.label}
             </option>
           ))}
@@ -204,11 +237,15 @@ export const Select = forwardRef<
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement> & FieldShellProps
->(function Textarea({ label, error, hint, required, className, rows = 4, ...rest }, ref) {
+>(function Textarea(
+  { label, error, hint, required, className, rows = 4, 'data-testid': testId, ...rest },
+  ref,
+) {
   return (
     <Field
       label={label}
       error={error}
+      data-testid={testId}
       {...(hint ? { hint } : {})}
       {...(required ? { required } : {})}
       {...(className ? { className } : {})}
@@ -222,6 +259,7 @@ export const Textarea = forwardRef<
           aria-describedby={describedBy}
           aria-required={required || undefined}
           className={cn(control, 'py-2', invalid ? 'border-error' : 'border-border')}
+          data-testid={testId}
           {...rest}
         />
       )}
@@ -241,7 +279,7 @@ export const Checkbox = forwardRef<
         id={id}
         type="checkbox"
         aria-describedby={description ? `${id}-d` : undefined}
-        className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+        className="mt-0.5 h-[18px] w-[18px] rounded border-border accent-accent"
         {...rest}
       />
       <label htmlFor={id} className="text-sm text-text">
@@ -267,7 +305,7 @@ export const Radio = forwardRef<
         ref={ref}
         id={id}
         type="radio"
-        className="h-4 w-4 border-border accent-primary"
+        className="h-[18px] w-[18px] border-border accent-accent"
         {...rest}
       />
       <label htmlFor={id} className="text-sm text-text">

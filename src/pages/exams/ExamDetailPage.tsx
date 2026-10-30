@@ -10,7 +10,7 @@ import { ErrorState, LoadingState } from '@/components/feedback/States';
 import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog } from '@/components/modals/Dialog';
+import { InlineConfirm } from '@/components/inline/Inline';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -385,6 +385,7 @@ export default function ExamDetailPage() {
         ? examService.unpublish(examId!)
         : examService.remove(examId!),
   );
+  const duplicate = useAssessmentMutation((id: string) => examService.duplicate(id));
   const tab = params.get('tab') ?? 'details';
 
   if (exam.isPending) return <LoadingState />;
@@ -424,33 +425,97 @@ export default function ExamDetailPage() {
       <PageHeader
         title={e.name}
         description={`${e.examCode} · ${e.questionCount} questions · ${e.totalMarks} marks · ${e.durationMinutes} min · pass ${e.passingPercentage}%`}
-        breadcrumb={[{ label: 'Exam Management' }, { label: 'Exams' }, { label: e.name }]}
+        breadcrumb={[{ label: 'Exams', to: `${base}/exams` }, { label: e.name }]}
         actions={
           <>
             <StatusBadge status={e.status} />
             {!published && perms.can('exam.publish') && (
               <Button
                 onClick={() => setConfirm('publish')}
+                data-testid="exam-publish-btn"
                 disabled={!e.questionCount || !e.assignmentCount}
               >
                 Publish
               </Button>
             )}
             {published && perms.can('exam.unpublish') && (
-              <Button variant="outline" onClick={() => setConfirm('unpublish')}>
+              <Button
+                variant="outline"
+                onClick={() => setConfirm('unpublish')}
+                data-testid="exam-unpublish-btn"
+              >
                 Unpublish
               </Button>
             )}
+            {perms.can('exam.create') && (
+              <Button
+                variant="ghost"
+                leftIcon={<Icon name="copy" size={16} />}
+                loading={duplicate.isPending}
+                onClick={() =>
+                  duplicate.mutate(e.id, {
+                    onSuccess: (x) => {
+                      toast({ title: 'Duplicated as a new draft', variant: 'success' });
+                      navigate(`${base}/exams/${x.id}`);
+                    },
+                    onError: (err) =>
+                      toast({
+                        title: 'Could not duplicate',
+                        description: errorText(err),
+                        variant: 'error',
+                      }),
+                  })
+                }
+                data-testid="exam-duplicate-btn"
+              >
+                Duplicate
+              </Button>
+            )}
             {!published && e.attemptCount === 0 && perms.can('exam.delete') && (
-              <Button variant="ghost" aria-label="Delete exam" onClick={() => setConfirm('delete')}>
+              <Button
+                variant="ghost"
+                aria-label="Delete exam"
+                onClick={() => setConfirm('delete')}
+                data-testid="exam-delete-btn"
+              >
                 <Icon name="trash" size={16} />
               </Button>
             )}
           </>
         }
       />
+      <InlineConfirm
+        open={Boolean(confirm)}
+        testId={`exam-${confirm ?? 'action'}`}
+        className="mb-4"
+        tone={confirm === 'delete' ? 'danger' : 'primary'}
+        title={
+          confirm === 'publish'
+            ? 'Publish this exam?'
+            : confirm === 'unpublish'
+              ? 'Unpublish this exam?'
+              : 'Delete this exam?'
+        }
+        confirmLabel={
+          confirm === 'publish' ? 'Publish' : confirm === 'unpublish' ? 'Unpublish' : 'Delete exam'
+        }
+        loading={action.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm && runAction(confirm)}
+        message={
+          confirm === 'publish'
+            ? 'Assigned students can start it as soon as its opening time is reached.'
+            : confirm === 'unpublish'
+              ? 'Students can no longer start it. Attempts already running can still be submitted.'
+              : 'The exam will be removed. Exams that students have taken cannot be deleted.'
+        }
+      />
       {!published && (!e.questionCount || !e.assignmentCount) && (
-        <p role="note" className="mb-4 rounded-lg bg-secondary/20 px-4 py-2 text-sm text-text">
+        <p
+          role="note"
+          className="mb-4 rounded-lg bg-secondary/20 px-4 py-2 text-sm text-text"
+          data-testid="exam-checklist"
+        >
           To publish: {!e.questionCount && 'add at least one question'}
           {!e.questionCount && !e.assignmentCount && ' and '}
           {!e.assignmentCount && 'assign the exam to at least one group'}.
@@ -458,6 +523,7 @@ export default function ExamDetailPage() {
       )}
       <Tabs
         label="Exam sections"
+        testId="exam"
         value={tab}
         onChange={(id) => setParams({ tab: id }, { replace: true })}
         tabs={[
@@ -470,7 +536,13 @@ export default function ExamDetailPage() {
                 actions={
                   !published &&
                   perms.can('exam.update') && (
-                    <Button size="sm" type="submit" form="exam-form" loading={update.isPending}>
+                    <Button
+                      size="sm"
+                      type="submit"
+                      form="exam-form"
+                      loading={update.isPending}
+                      data-testid="exam-details-save-btn"
+                    >
                       Save details
                     </Button>
                   )
@@ -511,30 +583,6 @@ export default function ExamDetailPage() {
             content: <AssignmentTab key={e.updatedAt + e.assignmentCount} exam={e} orgId={orgId} />,
           },
         ]}
-      />
-      <ConfirmDialog
-        open={Boolean(confirm)}
-        tone={confirm === 'delete' ? 'danger' : 'primary'}
-        title={
-          confirm === 'publish'
-            ? 'Publish this exam?'
-            : confirm === 'unpublish'
-              ? 'Unpublish this exam?'
-              : 'Delete this exam?'
-        }
-        confirmLabel={
-          confirm === 'publish' ? 'Publish' : confirm === 'unpublish' ? 'Unpublish' : 'Delete exam'
-        }
-        loading={action.isPending}
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => confirm && runAction(confirm)}
-        message={
-          confirm === 'publish'
-            ? 'Assigned students can start it as soon as its opening time is reached.'
-            : confirm === 'unpublish'
-              ? 'Students can no longer start it. Attempts already running can still be submitted.'
-              : 'The exam will be removed. Exams that students have taken cannot be deleted.'
-        }
       />
     </>
   );

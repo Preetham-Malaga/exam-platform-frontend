@@ -6,6 +6,8 @@ import type { IconName } from '@/components/ui/Icon';
 import type { PermissionCode } from './permissions';
 
 export interface NavItem {
+  /** Prototype menu id: the link's locator is nav-<key>-link (e.g. "syllabus" for Courses, "org-profile"). */
+  key: string;
   label: string;
   to: string;
   icon: IconName;
@@ -14,14 +16,20 @@ export interface NavItem {
   end?: boolean;
 }
 export interface NavSection {
+  /** Group id from the prototype NAV (overview, academics, people …): its button is nav-<id>-group-btn. */
+  id?: string;
+  /** Sections with a title are collapsible groups; the group holding the current page is always open. */
   title?: string;
   items: NavItem[];
 }
 
+// Matches the prototype NAV (docs/design/exam-platform-prototype.html). Groups and items for screens that are not built
+// yet (Learning, Batches) are added in their step of docs/design/IMPLEMENTATION_PLAN.md.
 export const orgNavigation: NavSection[] = [
   {
     items: [
       {
+        key: 'dashboard',
         label: 'Dashboard',
         to: '/org/dashboard',
         icon: 'dashboard',
@@ -30,18 +38,18 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
-    title: 'Content Management',
+    id: 'academics',
+    title: 'Academics',
     items: [
       {
-        label: 'Academic Structure',
-        to: '/org/academic',
-        icon: 'layers',
-        anyPermission: ['academic.manage'],
+        key: 'syllabus',
+        label: 'Courses',
+        to: '/org/courses',
+        icon: 'tree',
+        anyPermission: ['course.read', 'subject.read'],
       },
-      { label: 'Courses', to: '/org/courses', icon: 'book', anyPermission: ['course.read'] },
-      { label: 'Subjects', to: '/org/subjects', icon: 'list', anyPermission: ['subject.read'] },
-      { label: 'Topics', to: '/org/topics', icon: 'list', anyPermission: ['topic.read'] },
       {
+        key: 'questions',
         label: 'Question Bank',
         to: '/org/questions',
         icon: 'help',
@@ -50,60 +58,119 @@ export const orgNavigation: NavSection[] = [
     ],
   },
   {
-    title: 'Exam Management',
+    id: 'assessments',
+    title: 'Assessments',
     items: [
-      { label: 'Exams', to: '/org/exams', icon: 'file', anyPermission: ['exam.read'], end: true },
       {
-        label: 'Published Exams',
-        to: '/org/exams/published',
-        icon: 'check',
+        key: 'exams',
+        label: 'Exams',
+        to: '/org/exams',
+        icon: 'file',
         anyPermission: ['exam.read'],
       },
+    ],
+  },
+  {
+    id: 'learning',
+    title: 'Learning',
+    items: [
       {
-        label: 'Assignments',
-        to: '/org/assignments',
-        icon: 'send',
-        anyPermission: ['exam.assign'],
+        key: 'live',
+        label: 'Live Classes',
+        to: '/org/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/org/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/org/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
       },
     ],
   },
   {
+    id: 'people',
     title: 'People',
     items: [
-      { label: 'Students', to: '/org/students', icon: 'users', anyPermission: ['student.read'] },
-      { label: 'Teachers', to: '/org/teachers', icon: 'user', anyPermission: ['teacher.read'] },
-      { label: 'Users', to: '/org/users', icon: 'shield', anyPermission: ['user.read'] },
+      {
+        key: 'students',
+        label: 'Students',
+        to: '/org/students',
+        icon: 'users',
+        anyPermission: ['student.read'],
+      },
+      {
+        key: 'teachers',
+        label: 'Teachers',
+        to: '/org/teachers',
+        icon: 'user',
+        anyPermission: ['teacher.read'],
+      },
+      {
+        key: 'batches',
+        label: 'Batches',
+        to: '/org/batches',
+        icon: 'layers',
+        anyPermission: ['student.read'],
+      },
+      {
+        key: 'admins',
+        label: 'Admins',
+        to: '/org/admins',
+        icon: 'shield',
+        anyPermission: ['user.read'],
+      },
     ],
   },
   {
+    id: 'insights',
     title: 'Insights',
     items: [
-      { label: 'Results', to: '/org/results', icon: 'chart', anyPermission: ['result.read'] },
       {
+        key: 'results',
+        label: 'Results',
+        to: '/org/results',
+        icon: 'chart',
+        anyPermission: ['result.read'],
+      },
+      {
+        key: 'leaderboard',
         label: 'Leaderboard',
         to: '/org/leaderboard',
         icon: 'trophy',
         anyPermission: ['leaderboard.read'],
       },
-      { label: 'Reports', to: '/org/reports', icon: 'file', anyPermission: ['report.read'] },
+      {
+        key: 'reports',
+        label: 'Reports',
+        to: '/org/reports',
+        icon: 'file',
+        anyPermission: ['report.read'],
+      },
     ],
   },
   {
-    title: 'System',
+    id: 'settings',
+    title: 'Settings',
     items: [
       {
-        label: 'Notifications',
-        to: '/org/notifications',
-        icon: 'bell',
-        anyPermission: ['notification.read'],
-      },
-      {
+        key: 'org-profile',
         label: 'Organization Profile',
         to: '/org/profile',
         icon: 'building',
         anyPermission: ['organization.read'],
       },
       {
+        key: 'roles',
         label: 'Roles & Permissions',
         to: '/org/settings/permissions',
         icon: 'shield',
@@ -115,34 +182,95 @@ export const orgNavigation: NavSection[] = [
 
 export const teacherNavigation: NavSection[] = [
   {
+    items: [{ key: 'dashboard', label: 'Dashboard', to: '/teacher/dashboard', icon: 'dashboard' }],
+  },
+  {
+    id: 'academics',
+    title: 'Academics',
     items: [
-      { label: 'Dashboard', to: '/teacher/dashboard', icon: 'dashboard' },
       {
-        label: 'Subjects',
-        to: '/teacher/subjects',
-        icon: 'book',
+        key: 'syllabus',
+        label: 'Courses',
+        to: '/teacher/courses',
+        icon: 'tree',
         anyPermission: ['subject.read'],
       },
-      { label: 'Topics', to: '/teacher/topics', icon: 'list', anyPermission: ['topic.read'] },
       {
+        key: 'questions',
         label: 'Question Bank',
         to: '/teacher/questions',
         icon: 'help',
         anyPermission: ['question.read'],
       },
-      { label: 'Exams', to: '/teacher/exams', icon: 'file', anyPermission: ['exam.read'] },
-      { label: 'Results', to: '/teacher/results', icon: 'chart', anyPermission: ['result.read'] },
+    ],
+  },
+  {
+    id: 'assessments',
+    title: 'Assessments',
+    items: [
+      {
+        key: 'exams',
+        label: 'Exams',
+        to: '/teacher/exams',
+        icon: 'file',
+        anyPermission: ['exam.read'],
+      },
+    ],
+  },
+  {
+    id: 'learning',
+    title: 'Learning',
+    items: [
+      {
+        key: 'live',
+        label: 'Live Classes',
+        to: '/teacher/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/teacher/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/teacher/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
+      },
+    ],
+  },
+  {
+    id: 'insights',
+    title: 'Insights',
+    items: [
+      {
+        key: 'results',
+        label: 'Results',
+        to: '/teacher/results',
+        icon: 'chart',
+        anyPermission: ['result.read'],
+      },
     ],
   },
 ];
 
 export const studentNavigation: NavSection[] = [
   {
+    items: [{ key: 'home', label: 'Home', to: '/student/dashboard', icon: 'home' }],
+  },
+  {
+    id: 'my-exams',
+    title: 'My exams',
     items: [
-      { label: 'Dashboard', to: '/student/dashboard', icon: 'dashboard' },
-      { label: 'My Exams', to: '/student/exams', icon: 'file' },
-      { label: 'Results', to: '/student/results', icon: 'chart' },
+      { key: 'my-exams', label: 'My Exams', to: '/student/exams', icon: 'file' },
+      { key: 'my-results', label: 'My Results', to: '/student/results', icon: 'chart' },
       {
+        key: 'leaderboard',
         label: 'Leaderboard',
         to: '/student/leaderboard',
         icon: 'trophy',
@@ -150,17 +278,45 @@ export const studentNavigation: NavSection[] = [
       },
     ],
   },
+  {
+    id: 'learning',
+    title: 'Learning',
+    items: [
+      {
+        key: 'live',
+        label: 'Live Classes',
+        to: '/student/live',
+        icon: 'video',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'recorded',
+        label: 'Recorded Classes',
+        to: '/student/recorded',
+        icon: 'play',
+        anyPermission: ['learning.read'],
+      },
+      {
+        key: 'materials',
+        label: 'Materials',
+        to: '/student/materials',
+        icon: 'folder',
+        anyPermission: ['learning.read'],
+      },
+    ],
+  },
 ];
 
+// Platform staff. Only screens that exist are listed; more come with their own screens.
 export const platformNavigation: NavSection[] = [
   {
     items: [
-      { label: 'Dashboard', to: '/platform/dashboard', icon: 'dashboard' },
-      { label: 'Organizations', to: '/platform/organizations', icon: 'building' },
-      { label: 'Users', to: '/platform/users', icon: 'users' },
-      { label: 'Plans', to: '/platform/plans', icon: 'layers' },
-      { label: 'Subscriptions', to: '/platform/subscriptions', icon: 'check' },
-      { label: 'Audit Logs', to: '/platform/audit-logs', icon: 'shield' },
+      {
+        key: 'organizations',
+        label: 'Organizations',
+        to: '/platform/organizations',
+        icon: 'building',
+      },
     ],
   },
 ];

@@ -8,7 +8,7 @@ import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Radio, Select, Textarea } from '@/components/forms/Form';
 import { BarChart, DonutChart } from '@/components/charts/Charts';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Drawer, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Avatar } from '@/components/ui/Avatar';
@@ -26,8 +26,7 @@ const SAMPLE = [
 
 export default function UiGallery() {
   const { toast } = useToast();
-  const [modal, setModal] = useState(false);
-  const [drawer, setDrawer] = useState(false);
+  const [panel, setPanel] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [tab, setTab] = useState('a');
   const [search, setSearch] = useState('');
@@ -127,13 +126,13 @@ export default function UiGallery() {
           />
           <Pagination page={page} totalPages={5} total={42} pageSize={10} onPageChange={setPage} />
         </Card>
-        <Card title="Dialogs, toasts and tabs">
+        <Card title="Inline forms, confirmations, toasts and tabs">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setModal(true)}>
-              Open modal
+            <Button variant="outline" onClick={() => setPanel(true)}>
+              Open inline form
             </Button>
-            <Button variant="outline" onClick={() => setDrawer(true)}>
-              Open drawer
+            <Button variant="outline" onClick={() => setConfirm(true)}>
+              Ask to confirm
             </Button>
             <Button
               variant="outline"
@@ -152,6 +151,31 @@ export default function UiGallery() {
               Error toast
             </Button>
           </div>
+          <InlinePanel
+            open={panel}
+            onClose={() => setPanel(false)}
+            title="Example inline form"
+            className="mt-4"
+            footer={
+              <>
+                <Button variant="outline" onClick={() => setPanel(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setPanel(false)}>Save</Button>
+              </>
+            }
+          >
+            <Input label="Name" data-autofocus />
+          </InlinePanel>
+          <InlineConfirm
+            open={confirm}
+            className="mt-4"
+            title="Delete student?"
+            message="This cannot be undone."
+            confirmLabel="Delete"
+            onCancel={() => setConfirm(false)}
+            onConfirm={() => setConfirm(false)}
+          />
           <div className="mt-4">
             <Tabs
               label="Demo tabs"
@@ -205,32 +229,6 @@ export default function UiGallery() {
           </Card>
         </div>
       </div>
-      <Modal
-        open={modal}
-        onClose={() => setModal(false)}
-        title="Example modal"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setModal(false)}>Save</Button>
-          </>
-        }
-      >
-        <Input label="Name" data-autofocus />
-      </Modal>
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Example drawer">
-        Drawer content
-      </Drawer>
-      <ConfirmDialog
-        open={confirm}
-        title="Delete student?"
-        message="This cannot be undone."
-        confirmLabel="Delete"
-        onCancel={() => setConfirm(false)}
-        onConfirm={() => setConfirm(false)}
-      />
     </>
   );
 }

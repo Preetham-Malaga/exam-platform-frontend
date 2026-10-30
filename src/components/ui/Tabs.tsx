@@ -16,11 +16,14 @@ export function Tabs({
   value,
   onChange,
   label,
+  testId = 'tabs',
 }: {
   tabs: TabItem[];
   value: string;
   onChange: (id: string) => void;
   label: string;
+  /** Locator prefix: "exams" gives exams-tab-<id> buttons and exams-tab-panel. */
+  testId?: string;
 }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const move = (e: KeyboardEvent, index: number) => {
@@ -45,7 +48,7 @@ export function Tabs({
       <div
         role="tablist"
         aria-label={label}
-        className="flex gap-1 overflow-x-auto border-b border-border"
+        className="inline-flex max-w-full flex-wrap gap-1.5 self-start rounded-full bg-surface p-[5px]"
       >
         {tabs.map((t, i) => (
           <button
@@ -57,15 +60,15 @@ export function Tabs({
             id={`tab-${t.id}`}
             type="button"
             aria-selected={t.id === value}
+            data-testid={`${testId}-tab-${t.id}`}
+            data-selected={t.id === value}
             aria-controls={`panel-${t.id}`}
             tabIndex={t.id === value ? 0 : -1}
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => move(e, i)}
             className={cn(
-              '-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium',
-              t.id === value
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted hover:text-text',
+              'min-h-[38px] whitespace-nowrap rounded-full px-4 py-2 font-bold',
+              t.id === value ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
             )}
           >
             {t.label}
@@ -77,6 +80,8 @@ export function Tabs({
           role="tabpanel"
           id={`panel-${active.id}`}
           aria-labelledby={`tab-${active.id}`}
+          data-testid={`${testId}-tab-panel`}
+          data-tab={active.id}
           className="pt-4"
         >
           {active.content}

@@ -3,6 +3,7 @@
 // DEPENDS ON: pages/*, app/layouts/*, features/auth/guards.tsx.
 
 import { Navigate, createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { ToCourses } from '@/features/academic/ToCourses';
 import { GuestOnly, RequirePermission, RequireAuth } from '@/features/auth/guards';
 
 const page = (load: () => Promise<{ default: React.ComponentType }>) => ({
@@ -19,15 +20,58 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
     ]
   : [];
 
-/** Subjects and topics: mounted under /org (owners, admins) and /teacher (teachers, read-only subjects). */
+/** Courses tree and its add/edit pages: mounted under /org (owners, admins) and /teacher (RLS narrows a teacher's view). */
 const catalogRoutes: RouteObject[] = [
   {
     element: <RequirePermission permission="subject.read" />,
-    children: [{ path: 'subjects', ...page(() => import('@/pages/academic/SubjectsPage')) }],
+    children: [
+      { path: 'courses', ...page(() => import('@/pages/academic/CoursesPage')) },
+      { path: 'subjects', element: <ToCourses /> },
+      { path: 'topics', element: <ToCourses /> },
+    ],
   },
   {
-    element: <RequirePermission permission="topic.read" />,
-    children: [{ path: 'topics', ...page(() => import('@/pages/academic/TopicsPage')) }],
+    element: <RequirePermission permission="course.create" />,
+    children: [{ path: 'courses/new', ...page(() => import('@/pages/academic/CourseFormPage')) }],
+  },
+  {
+    element: <RequirePermission permission="course.update" />,
+    children: [
+      { path: 'courses/:courseId/edit', ...page(() => import('@/pages/academic/CourseFormPage')) },
+    ],
+  },
+  {
+    element: <RequirePermission permission="subject.create" />,
+    children: [
+      {
+        path: 'courses/:courseId/subjects/new',
+        ...page(() => import('@/pages/academic/SubjectFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="subject.update" />,
+    children: [
+      {
+        path: 'subjects/:subjectId/edit',
+        ...page(() => import('@/pages/academic/SubjectFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="topic.create" />,
+    children: [
+      {
+        path: 'subjects/:subjectId/topics/new',
+        ...page(() => import('@/pages/academic/TopicFormPage')),
+      },
+    ],
+  },
+  {
+    element: <RequirePermission permission="topic.update" />,
+    children: [
+      { path: 'topics/:topicId/edit', ...page(() => import('@/pages/academic/TopicFormPage')) },
+    ],
   },
 ];
 
@@ -39,13 +83,46 @@ const assessmentRoutes: RouteObject[] = [
   },
   {
     element: <RequirePermission permission="question.read" />,
-    children: [{ path: 'questions', ...page(() => import('@/pages/questions/QuestionBankPage')) }],
+    children: [
+      { path: 'questions', ...page(() => import('@/pages/questions/QuestionBankPage')) },
+      {
+        element: <RequirePermission permission="question.create" />,
+        children: [
+          {
+            path: 'questions/import',
+            ...page(() => import('@/pages/questions/QuestionImportPage')),
+          },
+        ],
+      },
+      {
+        path: 'questions/new',
+        lazy: async () => ({
+          Component: (await import('@/pages/forms/AddPages')).QuestionFormPage,
+        }),
+      },
+      {
+        path: 'questions/:questionId/edit',
+        lazy: async () => ({
+          Component: (await import('@/pages/forms/AddPages')).QuestionFormPage,
+        }),
+      },
+    ],
   },
   {
     element: <RequirePermission permission="exam.read" />,
     children: [
       { path: 'exams', ...page(() => import('@/pages/exams/ExamsPage')) },
-      { path: 'exams/published', ...page(() => import('@/pages/exams/PublishedExamsPage')) },
+      {
+        element: <RequirePermission permission="exam.create" />,
+        children: [
+          {
+            path: 'exams/new',
+            lazy: async () => ({ Component: (await import('@/pages/forms/AddPages')).ExamNewPage }),
+          },
+        ],
+      },
+      // The old Published Exams page is now the Published tab of Exams.
+      { path: 'exams/published', element: <Navigate to="../exams?tab=published" replace /> },
       { path: 'exams/:examId', ...page(() => import('@/pages/exams/ExamDetailPage')) },
     ],
   },
@@ -53,6 +130,39 @@ const assessmentRoutes: RouteObject[] = [
     element: <RequirePermission permission="result.read" />,
     children: [{ path: 'results', ...page(() => import('@/pages/insights/ResultsPage')) }],
   },
+];
+
+const named = <T extends Record<string, unknown>>(load: () => Promise<T>, name: keyof T) => ({
+  lazy: async () => ({ Component: (await load())[name] as React.ComponentType }),
+});
+const learningPages = () => import('@/pages/learning/LearningPages');
+const learningForms = () => import('@/pages/learning/LearningFormPage');
+
+/** Learning (live classes, recordings, materials): read for everyone with learning.read, add/edit with learning.manage. */
+const learningRoutes = (manage: boolean): RouteObject[] => [
+  {
+    element: <RequirePermission permission="learning.read" />,
+    children: [
+      { path: 'live', ...named(learningPages, 'LiveClassesPage') },
+      { path: 'recorded', ...named(learningPages, 'RecordedPage') },
+      { path: 'materials', ...named(learningPages, 'MaterialsPage') },
+    ],
+  },
+  ...(manage
+    ? [
+        {
+          element: <RequirePermission permission="learning.manage" />,
+          children: [
+            { path: 'live/new', ...named(learningForms, 'LiveFormPage') },
+            { path: 'live/:itemId/edit', ...named(learningForms, 'LiveFormPage') },
+            { path: 'recorded/new', ...named(learningForms, 'RecordingFormPage') },
+            { path: 'recorded/:itemId/edit', ...named(learningForms, 'RecordingFormPage') },
+            { path: 'materials/new', ...named(learningForms, 'MaterialFormPage') },
+            { path: 'materials/:itemId/edit', ...named(learningForms, 'MaterialFormPage') },
+          ],
+        },
+      ]
+    : []),
 ];
 
 /** The student area. The API returns only the student's own exams and results. */
@@ -63,6 +173,7 @@ const studentRoutes: RouteObject[] = [
   { path: 'attempts/:attemptId', ...page(() => import('@/pages/student/ExamRunnerPage')) },
   { path: 'results', ...page(() => import('@/pages/student/StudentResultsPage')) },
   { path: 'results/:attemptId', ...page(() => import('@/pages/student/ResultReviewPage')) },
+  ...learningRoutes(false),
   {
     element: <RequirePermission permission="leaderboard.read" />,
     children: [{ path: 'leaderboard', ...page(() => import('@/pages/insights/LeaderboardPage')) }],
@@ -81,6 +192,7 @@ export const routes: RouteObject[] = [
       { path: '/forgot-password', ...page(() => import('@/pages/auth/ForgotPasswordPage')) },
     ],
   },
+  { path: '/register/pending', ...page(() => import('@/pages/auth/SignupPendingPage')) },
   // Reachable signed in or out: the e-mail links sign the user in first.
   { path: '/verify-email', ...page(() => import('@/pages/auth/VerifyEmailPage')) },
   { path: '/reset-password', ...page(() => import('@/pages/auth/ResetPasswordPage')) },
@@ -91,6 +203,10 @@ export const routes: RouteObject[] = [
         ...page(() => import('@/app/layouts/AppLayout')),
         children: [
           { path: '/app', ...page(() => import('@/pages/app/AppHomePage')) },
+          {
+            path: '/platform/organizations',
+            ...page(() => import('@/pages/platform/PlatformOrganizationsPage')),
+          },
           {
             path: '/org',
             children: [
@@ -109,25 +225,24 @@ export const routes: RouteObject[] = [
                 children: [
                   { path: 'users', ...page(() => import('@/pages/organization/UsersPage')) },
                   { path: 'admins', ...page(() => import('@/pages/organization/AdminsPage')) },
-                ],
-              },
-              {
-                element: <RequirePermission permission="academic.manage" />,
-                children: [
                   {
-                    path: 'academic',
-                    ...page(() => import('@/pages/academic/AcademicStructurePage')),
+                    // Adding needs user.create, not only the read permission of the list.
+                    element: <RequirePermission permission="user.create" />,
+                    children: [
+                      {
+                        path: 'admins/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/forms/AddPages')).AdminNewPage,
+                        }),
+                      },
+                    ],
                   },
                 ],
               },
-              {
-                element: <RequirePermission permission="course.read" />,
-                children: [
-                  { path: 'courses', ...page(() => import('@/pages/academic/CoursesPage')) },
-                ],
-              },
+              { path: 'academic', element: <ToCourses /> },
               ...catalogRoutes,
               ...assessmentRoutes,
+              ...learningRoutes(true),
               {
                 element: <RequirePermission permission="exam.assign" />,
                 children: [
@@ -153,12 +268,78 @@ export const routes: RouteObject[] = [
                 element: <RequirePermission permission="student.read" />,
                 children: [
                   { path: 'students', ...page(() => import('@/pages/students/StudentsPage')) },
+                  { path: 'batches', ...page(() => import('@/pages/students/BatchesPage')) },
+                  {
+                    // Adding needs student.create, not only the read permission of the list.
+                    element: <RequirePermission permission="student.create" />,
+                    children: [
+                      {
+                        path: 'students/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .StudentFormPage,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="student.update" />,
+                    children: [
+                      {
+                        path: 'students/:studentId/edit',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .StudentFormPage,
+                        }),
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                element: <RequirePermission permission="student.create" />,
+                children: [
+                  { path: 'batches/new', ...page(() => import('@/pages/students/BatchFormPage')) },
+                ],
+              },
+              {
+                element: <RequirePermission permission="student.update" />,
+                children: [
+                  {
+                    path: 'batches/:batchId/edit',
+                    ...page(() => import('@/pages/students/BatchFormPage')),
+                  },
                 ],
               },
               {
                 element: <RequirePermission permission="teacher.read" />,
                 children: [
                   { path: 'teachers', ...page(() => import('@/pages/teachers/TeachersPage')) },
+                  {
+                    // Adding needs teacher.create, not only the read permission of the list.
+                    element: <RequirePermission permission="teacher.create" />,
+                    children: [
+                      {
+                        path: 'teachers/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .TeacherFormPage,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="teacher.update" />,
+                    children: [
+                      {
+                        path: 'teachers/:teacherId/edit',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/people/PersonFormPages'))
+                            .TeacherFormPage,
+                        }),
+                      },
+                    ],
+                  },
                 ],
               },
               {
@@ -183,6 +364,7 @@ export const routes: RouteObject[] = [
               { index: true, element: <Navigate to="/teacher/dashboard" replace /> },
               ...catalogRoutes,
               ...assessmentRoutes,
+              ...learningRoutes(true),
             ],
           },
           { path: '/student', children: studentRoutes },

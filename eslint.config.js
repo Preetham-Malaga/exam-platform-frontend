@@ -5,7 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage'] },
+  // "Frontend Test" is a local duplicate copy of the app (git-ignored); the Playwright folders are generated.
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      'playwright-report',
+      'test-results',
+      'Frontend Test',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

@@ -5,10 +5,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
+import { applyAppearance, readAppearance } from './features/appearance/appearance';
 import './styles/theme.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element #root not found');
+
+// Light/dark and colour theme before the first paint, so nothing flashes.
+applyAppearance(readAppearance());
 
 createRoot(rootElement).render(
   <StrictMode>

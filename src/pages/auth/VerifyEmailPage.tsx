@@ -28,7 +28,7 @@ export default function VerifyEmailPage() {
       <AuthLayout title="Email verified" subtitle="Your account is ready.">
         <Link
           to={homePathFor(auth.me)}
-          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90"
+          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary/90"
         >
           Continue
         </Link>

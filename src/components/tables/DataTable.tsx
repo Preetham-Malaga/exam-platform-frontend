@@ -2,7 +2,7 @@
 // WHY: Every list page (students, questions, exams, results, audit logs) needs the same server-side paginated table.
 // DEPENDS ON: feedback/States.tsx, ui/Button.tsx, Icon.tsx.
 
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -33,6 +33,12 @@ export interface DataTableProps<T> {
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+  /** Locator prefix (e.g. "exam"): exam-table, exam-row (+ data-entity-id), exam-row-<column>-cell, exam-loader/-empty/-error. */
+  testId?: string;
+  /** Business code shown on the row (exam code, roll number); exposed as data-entity-code. */
+  rowCode?: (row: T) => string | null | undefined;
+  /** Content shown in place under a row (inline edit form, delete confirmation); null/undefined = nothing. */
+  expandedRow?: (row: T) => ReactNode;
 }
 
 export function DataTable<T>({
@@ -40,6 +46,9 @@ export function DataTable<T>({
   columns,
   rows,
   rowKey,
+  testId = 'data',
+  rowCode,
+  expandedRow,
   sort,
   onSortChange,
   loading,
@@ -49,22 +58,29 @@ export function DataTable<T>({
   emptyDescription,
   emptyAction,
 }: DataTableProps<T>) {
-  if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} {...(onRetry ? { onRetry } : {})} />;
+  if (loading) return <LoadingState testId={`${testId}-loader`} />;
+  if (error)
+    return (
+      <ErrorState testId={`${testId}-error`} message={error} {...(onRetry ? { onRetry } : {})} />
+    );
   if (!rows.length)
     return (
       <EmptyState
+        testId={`${testId}-empty`}
         title={emptyTitle}
         {...(emptyDescription ? { description: emptyDescription } : {})}
         {...(emptyAction ? { action: emptyAction } : {})}
       />
     );
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
+    <div className="overflow-x-auto px-3">
+      <table
+        className="w-full min-w-[640px] border-separate border-spacing-x-0 border-spacing-y-1.5"
+        data-testid={`${testId}-table`}
+      >
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted">
+          <tr className="text-left text-xs font-bold text-muted">
             {columns.map((c) => {
               const active = sort?.key === c.key;
               return (
@@ -80,12 +96,13 @@ export function DataTable<T>({
                         ? 'none'
                         : undefined
                   }
-                  className={cn('whitespace-nowrap px-4 py-3 font-semibold', c.className)}
+                  className={cn('whitespace-nowrap px-3 py-1.5 font-bold', c.className)}
                 >
                   {c.sortable && onSortChange ? (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 uppercase hover:text-text"
+                      className="inline-flex items-center gap-1 font-bold hover:text-ink"
+                      data-testid={`${testId}-sort-${c.key}-btn`}
                       onClick={() =>
                         onSortChange({
                           key: c.key,
@@ -107,18 +124,42 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={rowKey(row)}
-              className="border-b border-border last:border-0 hover:bg-background/60"
-            >
-              {columns.map((c) => (
-                <td key={c.key} className={cn('px-4 py-3 align-middle', c.className)}>
-                  {c.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const below = expandedRow?.(row) ?? null;
+            const expanded = below !== null && below !== false;
+            return (
+              <Fragment key={rowKey(row)}>
+                <tr
+                  className="[&>td:first-child]:rounded-l-[14px] [&>td:last-child]:rounded-r-[14px]"
+                  data-testid={`${testId}-row`}
+                  data-entity-id={rowKey(row)}
+                  data-entity-code={rowCode?.(row) ?? undefined}
+                  data-expanded={expanded ? 'true' : undefined}
+                >
+                  {columns.map((c) => (
+                    <td
+                      key={c.key}
+                      className={cn('bg-row px-3 py-[11px] align-middle', c.className)}
+                      data-testid={`${testId}-row-${c.key}-cell`}
+                    >
+                      {c.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+                {expanded && (
+                  <tr
+                    className="[&>td]:rounded-[14px]"
+                    data-testid={`${testId}-row-expanded`}
+                    data-entity-id={rowKey(row)}
+                  >
+                    <td colSpan={columns.length} className="bg-row p-3">
+                      {below}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -131,12 +172,14 @@ export function Pagination({
   total,
   pageSize,
   onPageChange,
+  testId = 'pagination',
 }: {
   page: number;
   totalPages: number;
   total: number;
   pageSize: number;
   onPageChange: (p: number) => void;
+  testId?: string;
 }) {
   if (total === 0) return null;
   const from = (page - 1) * pageSize + 1;
@@ -144,9 +187,12 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-muted"
+      className="flex flex-wrap items-center justify-between gap-3 px-[22px] py-3 text-sm text-muted"
+      data-testid={testId}
+      data-page={page}
+      data-total-pages={totalPages}
     >
-      <p aria-live="polite">
+      <p aria-live="polite" data-testid={`${testId}-summary`}>
         Showing {from}–{to} of {total}
       </p>
       <div className="flex items-center gap-2">
@@ -156,6 +202,7 @@ export function Pagination({
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label="Previous page"
+          data-testid={`${testId}-prev-btn`}
         >
           <Icon name="chevronLeft" size={16} />
         </Button>
@@ -168,6 +215,7 @@ export function Pagination({
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label="Next page"
+          data-testid={`${testId}-next-btn`}
         >
           <Icon name="chevronRight" size={16} />
         </Button>

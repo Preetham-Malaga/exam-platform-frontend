@@ -24,6 +24,7 @@ import {
   type BrandingFormValues,
   type OrganizationFormValues,
 } from '@/features/organizations/schemas';
+import { DateTimeSettings, ThemeSettings } from '@/features/organizations/SettingsTabs';
 import { ApiClientError } from '@/lib/api';
 import type { Organization } from '@/types/organization';
 
@@ -170,9 +171,9 @@ export default function OrganizationProfilePage() {
   return (
     <>
       <PageHeader
-        title="Organization profile"
-        description="Details and branding for your institution."
-        breadcrumb={[{ label: 'Organization' }, { label: 'Profile' }]}
+        title="Organization Profile"
+        description="Details, branding and date settings for your institution."
+        breadcrumb={[{ label: 'Settings' }, { label: 'Organization Profile' }]}
       />
       <Card className="mb-5">
         <dl className="grid gap-4 sm:grid-cols-4">
@@ -203,7 +204,17 @@ export default function OrganizationProfilePage() {
           onChange={setTab}
           tabs={[
             { id: 'details', label: 'Details', content: <DetailsForm org={org} /> },
-            { id: 'branding', label: 'Branding', content: <BrandingForm org={org} /> },
+            {
+              id: 'branding',
+              label: 'Branding',
+              content: (
+                <div className="flex flex-col gap-6">
+                  <ThemeSettings org={org} />
+                  <BrandingForm org={org} />
+                </div>
+              ),
+            },
+            { id: 'datetime', label: 'Date & time', content: <DateTimeSettings org={org} /> },
           ]}
         />
       </Card>

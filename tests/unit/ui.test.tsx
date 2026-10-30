@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BarChart, DonutChart } from '@/components/charts/Charts';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { ToastProvider, useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Select } from '@/components/forms/Form';
 import { AppShell } from '@/components/layout/AppShell';
 import { Breadcrumb, PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination } from '@/components/tables/DataTable';
 import { SearchInput } from '@/components/tables/FilterBar';
 import { Avatar } from '@/components/ui/Avatar';
@@ -64,52 +64,52 @@ describe('form controls', () => {
   });
 });
 
-describe('Modal / ConfirmDialog accessibility', () => {
-  it('is a labelled modal dialog, closes on Escape and on overlay click, and returns focus', async () => {
+describe('InlinePanel / InlineConfirm (no pop-ups)', () => {
+  it('is a labelled region in the page: focus moves in, Escape and the close button close it', async () => {
     const onClose = vi.fn();
     const { rerender } = render(
       <>
         <button>opener</button>
-        <Modal open onClose={onClose} title="Edit student">
+        <InlinePanel open onClose={onClose} title="Edit student" testId="student-form">
           <Input label="Name" />
-        </Modal>
+        </InlinePanel>
       </>,
     );
-    const dialog = screen.getByRole('dialog', { name: 'Edit student' });
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toContainElement(document.activeElement as HTMLElement); // focus moved inside
+    const panel = screen.getByRole('region', { name: 'Edit student' });
+    expect(panel).not.toHaveAttribute('aria-modal');
+    expect(screen.getByLabelText('Name')).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTestId('dialog-overlay'));
+    fireEvent.click(screen.getByTestId('student-form-close-btn'));
     expect(onClose).toHaveBeenCalledTimes(2);
     rerender(
       <>
         <button>opener</button>
-        <Modal open={false} onClose={onClose} title="Edit student">
+        <InlinePanel open={false} onClose={onClose} title="Edit student">
           x
-        </Modal>
+        </InlinePanel>
       </>,
     );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Edit student' })).not.toBeInTheDocument();
   });
-  it('traps Tab focus inside the dialog', async () => {
+  it('does not trap focus: Tab can leave the panel to the rest of the page', async () => {
     render(
-      <Modal open onClose={() => undefined} title="Trap">
-        <Input label="A" />
-        <Input label="B" />
-      </Modal>,
+      <>
+        <InlinePanel open onClose={() => undefined} title="Inline">
+          <Input label="A" />
+        </InlinePanel>
+        <button>after</button>
+      </>,
     );
-    const dialog = screen.getByRole('dialog');
-    for (let i = 0; i < 6; i++) {
-      await userEvent.tab();
-      expect(dialog).toContainElement(document.activeElement as HTMLElement);
-    }
+    expect(screen.getByLabelText('A')).toHaveFocus();
+    await userEvent.tab(); // the close button sits before A, so the next stop is outside the panel
+    expect(screen.getByRole('button', { name: 'after' })).toHaveFocus();
   });
-  it('ConfirmDialog calls the right callback and focuses Cancel first', async () => {
+  it('InlineConfirm calls the right callback, focuses Cancel first and cancels on Escape', async () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
     render(
-      <ConfirmDialog
+      <InlineConfirm
         open
         title="Delete?"
         message="Sure?"
@@ -118,22 +118,24 @@ describe('Modal / ConfirmDialog accessibility', () => {
         onCancel={onCancel}
       />,
     );
+    expect(screen.getByRole('group', { name: 'Delete?' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(onCancel).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onConfirm).toHaveBeenCalled();
-    expect(onCancel).not.toHaveBeenCalled();
   });
 });
 
-describe('Modal focus stability', () => {
+describe('InlinePanel focus stability', () => {
   it('does not steal focus when the parent re-renders (new onClose function) while the user is typing', async () => {
     function Host() {
       const [n, setN] = useState(0);
       return (
-        <Modal open onClose={() => setN(n)} title="Form">
+        <InlinePanel open onClose={() => setN(n)} title="Form">
           <Input label="First" data-autofocus onChange={() => setN((v) => v + 1)} />
           <Input label="Second" onChange={() => setN((v) => v + 1)} />
-        </Modal>
+        </InlinePanel>
       );
     }
     render(<Host />);
@@ -150,7 +152,10 @@ describe('Toast', () => {
     const { toast } = useToast();
     return <button onClick={() => toast({ title: 'Saved', variant: 'success' })}>go</button>;
   }
-  it('announces in a live region and auto-dismisses', async () => {
+  afterEach(() => {
+    vi.useRealTimers(); // also after a failure, so later tests do not run on fake timers
+  });
+  it('announces in a live region and stays at least 4 s even when asked for less', async () => {
     vi.useFakeTimers();
     render(
       <ToastProvider durationMs={1000}>
@@ -165,11 +170,25 @@ describe('Toast', () => {
       'aria-live',
       'polite',
     );
+    expect(screen.getByTestId('toast-success')).toHaveAttribute('data-state', 'success');
     act(() => {
-      vi.advanceTimersByTime(1100);
+      vi.advanceTimersByTime(3900);
+    });
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(200);
     });
     expect(screen.queryByText('Saved')).not.toBeInTheDocument();
-    vi.useRealTimers();
+  });
+  it('closes from its close button', () => {
+    render(
+      <ToastProvider>
+        <Trigger />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('go'));
+    fireEvent.click(screen.getByTestId('toast-close-btn'));
+    expect(screen.queryByTestId('toast-success')).not.toBeInTheDocument();
   });
   it('useToast outside the provider fails loudly', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -334,8 +353,9 @@ describe('badges, cards, states, charts', () => {
         <StatusBadge status="Passed" />
       </>,
     );
-    expect(screen.getByText('Pending email').className).toContain('bg-warning');
-    expect(screen.getByText('Passed').className).toContain('bg-success');
+    expect(screen.getByText('Pending email').parentElement!.className).toContain('bg-butter');
+    expect(screen.getByText('Pending email')).toHaveAttribute('data-state', 'pending_email');
+    expect(screen.getByText('Passed').parentElement!.className).toContain('bg-mint');
   });
   it('StatCard shows the value, or a loading skeleton', () => {
     const { rerender } = render(<StatCard label="Students" value="12" />);
@@ -420,12 +440,14 @@ describe('layout', () => {
     );
     expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['A', 'B']);
   });
-  it('AppShell renders skip link, main landmark, navigation and the user name', () => {
+  it('AppShell renders skip link, main landmark, navigation, the user and Log out', () => {
+    const onSignOut = vi.fn();
     render(
       <MemoryRouter>
         <AppShell
           sections={orgNavigation.slice(0, 2)}
-          user={{ name: 'Dev User', email: 'dev@x.com' }}
+          user={{ name: 'Dev User', email: 'dev@x.com', role: 'Owner' }}
+          onSignOut={onSignOut}
         >
           <p>content</p>
         </AppShell>
@@ -436,26 +458,26 @@ describe('layout', () => {
       '#main-content',
     );
     expect(screen.getByRole('main')).toHaveTextContent('content');
-    expect(screen.getByText('Dev User')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Toggle navigation' })).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-user-name')).toHaveTextContent('Dev User');
+    fireEvent.click(screen.getByTestId('nav-logout-btn'));
+    expect(onSignOut).toHaveBeenCalled();
   });
-  it('on small screens the menu button opens a navigation drawer', async () => {
+  it('the menu button (small screens) opens the menu inside the sidebar card, never a drawer', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/org/dashboard']}>
         <AppShell sections={orgNavigation.slice(0, 2)}>
           <p>x</p>
         </AppShell>
       </MemoryRouter>,
     );
+    const toggle = screen.getByTestId('nav-menu-btn');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'true');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
-    expect(within(drawer).getByRole('link', { name: /Dashboard/ })).toBeInTheDocument();
-    await waitFor(() =>
-      expect(
-        within(drawer).getByRole('navigation', { name: 'Main navigation' }),
-      ).toBeInTheDocument(),
-    );
+    const nav = within(screen.getByRole('navigation', { name: 'Main' }));
+    await waitFor(() => expect(nav.getByRole('link', { name: /Dashboard/ })).toBeInTheDocument());
   });
 });
 
@@ -464,15 +486,15 @@ describe('navigation filtering (UX only; the API and database enforce access)', 
     const can = (p: string) => ['course.read', 'subject.read'].includes(p);
     const out = filterNavigation(orgNavigation, can);
     const labels = out.flatMap((s) => s.items.map((i) => i.label));
-    expect(labels).toEqual(['Courses', 'Subjects']);
+    expect(labels).toEqual(['Courses']);
     expect(out.every((s) => s.items.length > 0)).toBe(true);
   });
   it('items without a permission requirement are always kept', () => {
     const out = filterNavigation(studentNavigation, () => false);
     expect(out.flatMap((s) => s.items.map((i) => i.label))).toEqual([
-      'Dashboard',
+      'Home',
       'My Exams',
-      'Results',
+      'My Results',
     ]);
   });
 });

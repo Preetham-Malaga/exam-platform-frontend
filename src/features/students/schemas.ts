@@ -26,6 +26,7 @@ export const studentSchema = z
       ),
     phone: z.string().trim().max(30, 'Keep it under 30 characters'),
     academicUnitId: z.string(),
+    batchId: z.string(),
     invite: z.boolean(),
     status: z.enum(['active', 'inactive']),
   })

@@ -6,4 +6,9 @@ import { afterEach } from 'vitest';
 // suite runs in parallel. findBy*/waitFor still return as soon as the element appears.
 configure({ asyncUtilTimeout: 10_000 });
 
+// Unit tests never reach the network. Without this, a request still in flight when a test ends (after mockApi's fetch
+// is removed) would hit a locally running API, get 401 for the fake token and sign the next test out.
+globalThis.fetch = () =>
+  Promise.reject(new Error('Network is disabled in unit tests; use mockApi().'));
+
 afterEach(() => cleanup());

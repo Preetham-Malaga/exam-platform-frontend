@@ -7,6 +7,8 @@ import type { Paginated } from './api';
 export type ScopeType = 'subject' | 'course' | 'academic_unit';
 
 export interface Teacher {
+  /** Only on create: set when the record was saved but the invitation e-mail could not be sent. */
+  inviteError?: { code: string; message: string } | null;
   id: string;
   employeeCode: string;
   fullName: string;
@@ -18,6 +20,8 @@ export interface Teacher {
   /** Membership of the linked login: active, suspended ... (null without a login). */
   accountStatus: string | null;
   scopeCount: number;
+  /** Extra profile fields (migration 047): date of birth, education, professional details … */
+  details?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +55,7 @@ export interface CreateTeacherBody {
   fullName: string;
   email: string | null;
   phone: string | null;
+  details?: Record<string, unknown>;
   invite: boolean;
 }
 

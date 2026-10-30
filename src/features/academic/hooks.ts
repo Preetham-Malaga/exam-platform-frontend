@@ -15,6 +15,29 @@ export const useLevels = () =>
 export const useUnitTree = () =>
   useQuery({ queryKey: [...academicKey, 'tree'], queryFn: academicService.tree });
 
+/** Courses → subjects → topics with question counts (one request). */
+export const useCatalogTree = () =>
+  useQuery({ queryKey: [...academicKey, 'catalog-tree'], queryFn: academicService.catalogTree });
+
+export const useCourse = (id: string | undefined) =>
+  useQuery({
+    queryKey: [...academicKey, 'course', id],
+    queryFn: () => academicService.course(id!),
+    enabled: Boolean(id),
+  });
+export const useSubject = (id: string | undefined) =>
+  useQuery({
+    queryKey: [...academicKey, 'subject', id],
+    queryFn: () => academicService.subject(id!),
+    enabled: Boolean(id),
+  });
+export const useTopic = (id: string | undefined) =>
+  useQuery({
+    queryKey: [...academicKey, 'topic', id],
+    queryFn: () => academicService.topic(id!),
+    enabled: Boolean(id),
+  });
+
 export const useCourses = (p: CatalogListParams, enabled = true) =>
   useQuery({
     queryKey: [...academicKey, 'courses', p],
@@ -44,6 +67,9 @@ export function useAcademicMutation<V, R>(fn: (v: V) => Promise<R>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => qc.invalidateQueries({ queryKey: academicKey }),
+    // Refresh lists in the background: the form closes as soon as the save succeeds instead of waiting for the reload.
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: academicKey });
+    },
   });
 }

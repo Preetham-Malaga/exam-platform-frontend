@@ -5,11 +5,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/feedback/Toast';
 import { Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -38,7 +38,17 @@ const ROLE_FILTER = [
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
-function InviteAdminModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Shown above the list. */
+/** Invite an admin (its own page: /org/admins/new). */
+export function InviteAdminForm({
+  open,
+  onClose,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  className?: string;
+}) {
   const { toast } = useToast();
   const invite = useInviteAdmin();
   const {
@@ -69,23 +79,35 @@ function InviteAdminModal({ open, onClose }: { open: boolean; onClose: () => voi
     }),
   );
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title="Invite an admin"
+      testId="admin-invite-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="admin-invite-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="invite-admin-form" loading={invite.isPending}>
+          <Button
+            type="submit"
+            form="invite-admin-form"
+            loading={invite.isPending}
+            data-testid="admin-invite-form-send-btn"
+          >
             Send invitation
           </Button>
         </>
       }
     >
-      <form id="invite-admin-form" onSubmit={onSubmit} noValidate className="grid gap-4">
-        <p className="text-sm text-muted">
+      <form
+        id="invite-admin-form"
+        onSubmit={onSubmit}
+        noValidate
+        className="grid gap-4 sm:grid-cols-2"
+      >
+        <p className="text-sm text-muted sm:col-span-2">
           Admins can manage users, content and exams, but not the organization profile.
         </p>
         <Input
@@ -93,6 +115,7 @@ function InviteAdminModal({ open, onClose }: { open: boolean; onClose: () => voi
           required
           data-autofocus
           error={errors.fullName?.message}
+          data-testid="admin-invite-form-name-input"
           {...register('fullName')}
         />
         <Input
@@ -100,14 +123,16 @@ function InviteAdminModal({ open, onClose }: { open: boolean; onClose: () => voi
           type="email"
           required
           error={errors.email?.message}
+          data-testid="admin-invite-form-email-input"
           {...register('email')}
         />
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
 export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean }) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { me } = useAuth();
   const perms = usePermissions();
@@ -115,7 +140,6 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
   const [role, setRole] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'fullName', order: 'asc' });
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState<{ user: OrgUser; role: AssignableRole } | null>(
     null,
   );
@@ -135,21 +159,36 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
   });
   const changeRole = useChangeRole();
   const changeStatus = useChangeStatus();
+  // One inline form or confirmation at a time.
+  const askRole = (user: OrgUser, r: AssignableRole) => {
+    setPendingStatus(null);
+    setPendingRole({ user, role: r });
+  };
+  const askStatus = (user: OrgUser, status: 'active' | 'suspended') => {
+    setPendingRole(null);
+    setPendingStatus({ user, status });
+  };
 
   const rowMenu = (u: OrgUser): MenuItem[] => {
     const items: MenuItem[] = perms.assignableRoles
       .filter((r) => !u.roles.includes(r))
       .map((r) => ({
         label: `Make ${ROLE_LABEL[r]!.toLowerCase()}`,
-        onSelect: () => setPendingRole({ user: u, role: r as AssignableRole }),
+        testId: `row-actions-role-${r.toLowerCase().replace(/_/g, '-')}-menu-item`,
+        onSelect: () => askRole(u, r as AssignableRole),
       }));
     items.push(
       u.status === 'suspended'
-        ? { label: 'Reactivate', onSelect: () => setPendingStatus({ user: u, status: 'active' }) }
+        ? {
+            label: 'Reactivate',
+            testId: 'row-actions-reactivate-menu-item',
+            onSelect: () => askStatus(u, 'active'),
+          }
         : {
             label: 'Suspend',
             danger: true,
-            onSelect: () => setPendingStatus({ user: u, status: 'suspended' }),
+            testId: 'row-actions-suspend-menu-item',
+            onSelect: () => askStatus(u, 'suspended'),
           },
     );
     return items;
@@ -202,10 +241,11 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
     );
 
   const data = q.data;
-  const nav = (to: string, label: string) => (
+  const nav = (to: string, label: string, testId: string) => (
     <NavLink
       to={to}
       end
+      data-testid={testId}
       className={({ isActive }) =>
         `rounded-lg px-3 py-1.5 text-sm font-medium ${isActive ? 'bg-secondary/30 text-primary' : 'text-muted hover:bg-background'}`
       }
@@ -226,15 +266,19 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
         breadcrumb={[{ label: 'People' }, { label: adminsOnly ? 'Admins' : 'Users' }]}
         actions={
           <Can role="ORGANIZATION_OWNER">
-            <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setInviteOpen(true)}>
+            <Button
+              leftIcon={<Icon name="plus" size={16} />}
+              onClick={() => navigate('/org/admins/new')}
+              data-testid="users-invite-admin-btn"
+            >
               Invite admin
             </Button>
           </Can>
         }
       />
       <div className="mb-3 flex gap-1" aria-label="User views" role="group">
-        {nav('/org/users', 'All users')}
-        {nav('/org/admins', 'Admins')}
+        {nav('/org/users', 'All users', 'users-view-all-link')}
+        {nav('/org/admins', 'Admins', 'users-view-admins-link')}
       </div>
       <Card padded={false}>
         <FilterBar
@@ -326,12 +370,61 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
                 ) ? (
                   <Dropdown
                     label={`Actions for ${u.fullName || u.email}`}
+                    testId="row-actions"
                     trigger={<Icon name="more" />}
                     items={rowMenu(u)}
                   />
                 ) : null,
             },
           ]}
+          testId="user"
+          expandedRow={(u) =>
+            pendingRole?.user.userId === u.userId ? (
+              <InlineConfirm
+                open
+                testId="user-role"
+                title="Change role?"
+                tone="primary"
+                confirmLabel="Change role"
+                loading={changeRole.isPending}
+                onCancel={() => setPendingRole(null)}
+                onConfirm={runRole}
+                message={
+                  <>
+                    Make <strong>{u.fullName || u.email}</strong> a{' '}
+                    {ROLE_LABEL[pendingRole.role]!.toLowerCase()}? Their access changes immediately.
+                  </>
+                }
+              />
+            ) : pendingStatus?.user.userId === u.userId ? (
+              <InlineConfirm
+                open
+                testId="user-status"
+                title={
+                  pendingStatus.status === 'suspended'
+                    ? 'Suspend this user?'
+                    : 'Reactivate this user?'
+                }
+                tone={pendingStatus.status === 'suspended' ? 'danger' : 'primary'}
+                confirmLabel={pendingStatus.status === 'suspended' ? 'Suspend' : 'Reactivate'}
+                loading={changeStatus.isPending}
+                onCancel={() => setPendingStatus(null)}
+                onConfirm={runStatus}
+                message={
+                  pendingStatus.status === 'suspended' ? (
+                    <>
+                      <strong>{u.fullName || u.email}</strong> will lose access to this organization
+                      right away.
+                    </>
+                  ) : (
+                    <>
+                      <strong>{u.fullName || u.email}</strong> will get their access back.
+                    </>
+                  )
+                }
+              />
+            ) : null
+          }
         />
         {data && (
           <Pagination
@@ -343,53 +436,6 @@ export default function UsersPage({ adminsOnly = false }: { adminsOnly?: boolean
           />
         )}
       </Card>
-
-      <InviteAdminModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
-      <ConfirmDialog
-        open={Boolean(pendingRole)}
-        title="Change role?"
-        tone="primary"
-        confirmLabel="Change role"
-        loading={changeRole.isPending}
-        onCancel={() => setPendingRole(null)}
-        onConfirm={runRole}
-        message={
-          pendingRole && (
-            <>
-              Make <strong>{pendingRole.user.fullName || pendingRole.user.email}</strong> a{' '}
-              {ROLE_LABEL[pendingRole.role]!.toLowerCase()}? Their access changes immediately.
-            </>
-          )
-        }
-      />
-      <ConfirmDialog
-        open={Boolean(pendingStatus)}
-        title={
-          pendingStatus?.status === 'suspended' ? 'Suspend this user?' : 'Reactivate this user?'
-        }
-        tone={pendingStatus?.status === 'suspended' ? 'danger' : 'primary'}
-        confirmLabel={pendingStatus?.status === 'suspended' ? 'Suspend' : 'Reactivate'}
-        loading={changeStatus.isPending}
-        onCancel={() => setPendingStatus(null)}
-        onConfirm={runStatus}
-        message={
-          pendingStatus && (
-            <>
-              {pendingStatus.status === 'suspended' ? (
-                <>
-                  <strong>{pendingStatus.user.fullName || pendingStatus.user.email}</strong> will
-                  lose access to this organization right away.
-                </>
-              ) : (
-                <>
-                  <strong>{pendingStatus.user.fullName || pendingStatus.user.email}</strong> will
-                  get their access back.
-                </>
-              )}
-            </>
-          )
-        }
-      />
     </>
   );
 }

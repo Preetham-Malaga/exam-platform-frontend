@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/States';
 import { useToast } from '@/components/feedback/Toast';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog } from '@/components/modals/Dialog';
+import { InlineConfirm } from '@/components/inline/Inline';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -17,6 +17,7 @@ import { formatDateTime } from '@/features/assessment/format';
 import { useAvailableExams } from '@/features/assessment/hooks';
 import { attemptService } from '@/services/assessmentService';
 import type { AvailableExam } from '@/types/assessment';
+import { cn } from '@/utils/cn';
 
 export default function StudentExamsPage() {
   const navigate = useNavigate();
@@ -59,7 +60,14 @@ export default function StudentExamsPage() {
           {exams.data.items.map((e) => {
             const left = e.maxAttempts - e.attemptsUsed;
             return (
-              <Card key={e.examId} title={e.name}>
+              <Card
+                key={e.examId}
+                title={e.name}
+                testId="student-exam-card"
+                entityId={e.examId}
+                entityCode={e.examCode}
+                state={e.runningAttemptId ? 'in-progress' : left <= 0 ? 'no-attempts' : 'open'}
+              >
                 <p className="mb-3 font-mono text-xs text-muted">{e.examCode}</p>
                 <dl className="grid grid-cols-2 gap-y-1 text-sm">
                   <dt className="text-muted">Duration</dt>
@@ -77,10 +85,40 @@ export default function StudentExamsPage() {
                     {e.attemptsUsed} of {e.maxAttempts} used
                   </dd>
                 </dl>
-                <div className="mt-4 flex items-center justify-between">
+                <InlineConfirm
+                  open={starting?.examId === e.examId}
+                  testId="student-exam-start"
+                  className="mt-4"
+                  tone="primary"
+                  title={`Start ${e.name}?`}
+                  confirmLabel="Start now"
+                  loading={busy}
+                  onCancel={() => setStarting(null)}
+                  onConfirm={() => void start(e)}
+                  message={
+                    <>
+                      <p>
+                        You will have <strong>{e.durationMinutes} minutes</strong>. The timer keeps
+                        running if you close the page; your answers are saved as you go.
+                      </p>
+                      {e.description && (
+                        <p className="mt-2 whitespace-pre-wrap text-muted">{e.description}</p>
+                      )}
+                    </>
+                  }
+                />
+                <div
+                  className={cn(
+                    'mt-4 flex items-center justify-between',
+                    starting?.examId === e.examId && 'hidden',
+                  )}
+                >
                   {e.runningAttemptId ? <Badge tone="warning">In progress</Badge> : <span />}
                   {e.runningAttemptId ? (
-                    <Button onClick={() => navigate(`/student/attempts/${e.runningAttemptId}`)}>
+                    <Button
+                      onClick={() => navigate(`/student/attempts/${e.runningAttemptId}`)}
+                      data-testid="student-exam-card-resume-btn"
+                    >
                       Resume
                     </Button>
                   ) : (
@@ -88,6 +126,7 @@ export default function StudentExamsPage() {
                       disabled={left <= 0}
                       onClick={() => setStarting(e)}
                       aria-label={`Start ${e.name}`}
+                      data-testid="student-exam-card-start-btn"
                     >
                       {left <= 0 ? 'No attempts left' : 'Start'}
                     </Button>
@@ -98,28 +137,6 @@ export default function StudentExamsPage() {
           })}
         </div>
       )}
-      <ConfirmDialog
-        open={Boolean(starting)}
-        tone="primary"
-        title={starting ? `Start ${starting.name}?` : 'Start exam?'}
-        confirmLabel="Start now"
-        loading={busy}
-        onCancel={() => setStarting(null)}
-        onConfirm={() => starting && void start(starting)}
-        message={
-          starting && (
-            <>
-              <p>
-                You will have <strong>{starting.durationMinutes} minutes</strong>. The timer keeps
-                running if you close the page; your answers are saved as you go.
-              </p>
-              {starting.description && (
-                <p className="mt-2 whitespace-pre-wrap text-muted">{starting.description}</p>
-              )}
-            </>
-          )
-        }
-      />
     </>
   );
 }

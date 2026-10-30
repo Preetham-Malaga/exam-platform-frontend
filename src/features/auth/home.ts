@@ -8,6 +8,7 @@ import type { MeResponse } from '@/types/auth';
 export function homePathFor(
   me: Pick<MeResponse, 'isPlatformAdmin' | 'roles' | 'organization' | 'permissions'> | null,
 ): string {
+  if (me?.isPlatformAdmin) return '/platform/organizations';
   if (!me?.organization) return '/app';
   const roles = me.roles;
   const reports = me.permissions.includes('report.read'); // both dashboards need it

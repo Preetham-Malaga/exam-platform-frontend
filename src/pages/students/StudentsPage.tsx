@@ -3,13 +3,14 @@
 //      permissions (UX only); the API and RLS enforce every rule.
 // DEPENDS ON: features/students/*, features/academic (unit tree), shared table/form/dialog components.
 
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/feedback/Toast';
 import { Checkbox, Input, Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog, Modal } from '@/components/modals/Dialog';
+import { InlineConfirm, InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -20,11 +21,12 @@ import { Icon } from '@/components/ui/Icon';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { useUnitTree } from '@/features/academic/hooks';
 import { unitOptions } from '@/features/academic/tree';
+import { useBatches } from '@/features/batches/batches';
 import { errorText } from '@/features/academic/ui';
 import { Can } from '@/features/auth/Can';
 import { LoginBadge } from '@/features/people/LoginBadge';
 import { useStudentMutation, useStudents } from '@/features/students/hooks';
-import { ImportModal } from '@/features/students/ImportModal';
+import { ImportPanel } from '@/features/students/ImportPanel';
 import { studentSchema, type StudentValues } from '@/features/students/schemas';
 import { studentService } from '@/services/studentService';
 import type { Student, UpdateStudentBody } from '@/types/student';
@@ -37,18 +39,23 @@ const STATUS_OPTIONS = [
 ];
 type Option = { value: string; label: string };
 
-function StudentModal({
+/** Add form (above the list) or edit form (under the student's row). */
+/** Add form (its own page: /org/students/new) or edit form (under the student's row). */
+export function StudentForm({
   open,
   student,
   units,
   onClose,
+  className,
 }: {
   open: boolean;
   student: Student | null;
   units: Option[];
   onClose: () => void;
+  className?: string;
 }) {
   const { toast } = useToast();
+  const batches = useBatches();
   const create = useStudentMutation((v: StudentValues) =>
     studentService.create({
       rollNumber: v.rollNumber,
@@ -56,6 +63,7 @@ function StudentModal({
       email: v.email || null,
       phone: v.phone || null,
       academicUnitId: v.academicUnitId || null,
+      batchId: v.batchId || null,
       invite: v.invite,
     }),
   );
@@ -70,6 +78,7 @@ function StudentModal({
       email: student?.email ?? '',
       phone: student?.phone ?? '',
       academicUnitId: student?.academicUnitId ?? '',
+      batchId: student?.batchId ?? '',
       invite: false,
       status: student?.status ?? 'active',
     },
@@ -90,6 +99,7 @@ function StudentModal({
             fullName: v.fullName,
             phone: v.phone || null,
             academicUnitId: v.academicUnitId || null,
+            batchId: v.batchId || null,
             status: v.status,
             // a linked student signs in with this address: it is shown but not editable
             ...(student.userId ? {} : { email: v.email || null }),
@@ -105,12 +115,20 @@ function StudentModal({
       );
     else
       create.mutate(v, {
-        onSuccess: () => {
-          toast({
-            title: 'Student added',
-            description: v.invite ? `An invitation was sent to ${v.email}.` : undefined,
-            variant: 'success',
-          });
+        onSuccess: (saved) => {
+          // Saved even when the e-mail could not go out; say why, so the invitation can be re-sent from the row.
+          if (saved.inviteError)
+            toast({
+              title: 'Student added, but the invitation was not sent',
+              description: saved.inviteError.message,
+              variant: 'warning',
+            });
+          else
+            toast({
+              title: 'Student added',
+              description: v.invite ? `An invitation was sent to ${v.email}.` : undefined,
+              variant: 'success',
+            });
           close();
         },
         onError: fail('Could not add the student'),
@@ -118,27 +136,35 @@ function StudentModal({
   });
   const e = form.formState.errors;
   return (
-    <Modal
+    <InlinePanel
       open={open}
       onClose={close}
       title={student ? `Edit ${student.fullName}` : 'Add a student'}
+      testId="student-form"
+      {...(className ? { className } : {})}
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="outline" onClick={close} data-testid="student-form-cancel-btn">
             Cancel
           </Button>
-          <Button type="submit" form="student-form" loading={create.isPending || update.isPending}>
+          <Button
+            type="submit"
+            form="student-form"
+            loading={create.isPending || update.isPending}
+            data-testid="student-form-save-btn"
+          >
             {student ? 'Save' : 'Add student'}
           </Button>
         </>
       }
     >
-      <form id="student-form" noValidate onSubmit={onSubmit} className="grid gap-4">
+      <form id="student-form" noValidate onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Full name"
           required
           data-autofocus
           error={e.fullName?.message}
+          data-testid="student-form-name-input"
           {...form.register('fullName')}
         />
         <Input
@@ -146,13 +172,23 @@ function StudentModal({
           required
           hint="Unique in your organization."
           error={e.rollNumber?.message}
+          data-testid="student-form-roll-number-input"
           {...form.register('rollNumber')}
+        />
+        <Select
+          label="Batch"
+          placeholder="No batch"
+          hint="Classes and materials reach students through their batch."
+          options={(batches.data?.items ?? []).map((b) => ({ value: b.id, label: b.name }))}
+          data-testid="student-form-batch-select"
+          {...form.register('batchId')}
         />
         <Select
           label="Academic unit"
           placeholder="Not placed yet"
           hint="Exams assigned to this unit (or a unit above it) reach the student."
           options={units}
+          data-testid="student-form-unit-select"
           {...form.register('academicUnitId')}
         />
         <Input
@@ -161,37 +197,49 @@ function StudentModal({
           disabled={Boolean(student?.userId)}
           hint={student?.userId ? 'This is the sign-in address of the student.' : undefined}
           error={e.email?.message}
+          data-testid="student-form-email-input"
           {...form.register('email')}
         />
-        <Input label="Phone" error={e.phone?.message} {...form.register('phone')} />
+        <Input
+          label="Phone"
+          error={e.phone?.message}
+          data-testid="student-form-phone-input"
+          {...form.register('phone')}
+        />
         {student ? (
           <Select
             label="Status"
             hint="Inactive students cannot sign in to your organization."
             options={STATUS_OPTIONS}
+            data-testid="student-form-status-select"
             {...form.register('status')}
           />
         ) : (
           <Checkbox
             label="Send an invitation to sign in"
             description="You can also invite students later from the list."
+            data-testid="student-form-invite-checkbox"
             {...form.register('invite')}
           />
         )}
       </form>
-    </Modal>
+    </InlinePanel>
   );
 }
 
 export default function StudentsPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const perms = usePermissions();
   const [search, setSearch] = useState('');
   const [unit, setUnit] = useState('');
+  const [params, setParams] = useSearchParams();
+  const batch = params.get('batch') ?? '';
+  const setBatch = (v: string) => setParams(v ? { batch: v } : {}, { replace: true });
+  const batchList = useBatches();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortState>({ key: 'rollNumber', order: 'asc' });
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [removing, setRemoving] = useState<Student | null>(null);
   const [importing, setImporting] = useState(false);
@@ -206,6 +254,7 @@ export default function StudentsPage() {
     ...(search ? { search } : {}),
     ...(status ? { status: status as 'active' | 'inactive' } : {}),
     ...(unit === UNPLACED ? { unplaced: true } : unit ? { academicUnitId: unit } : {}),
+    ...(batch === 'none' ? { noBatch: true } : batch ? { batchId: batch } : {}),
   });
   const invite = useStudentMutation((id: string) => studentService.invite(id));
   const remove = useStudentMutation((id: string) => studentService.remove(id));
@@ -213,13 +262,26 @@ export default function StudentsPage() {
     fn();
     setPage(1);
   };
+  // One inline form or confirmation at a time.
+  const show = (next: { importing?: boolean; editing?: Student; removing?: Student }) => {
+    setImporting(Boolean(next.importing));
+    setEditing(next.editing ?? null);
+    setRemoving(next.removing ?? null);
+  };
+  const closeForm = () => show({});
 
   const menu = (s: Student): MenuItem[] => {
     const items: MenuItem[] = [];
-    if (perms.can('student.update')) items.push({ label: 'Edit', onSelect: () => setEditing(s) });
+    if (perms.can('student.update'))
+      items.push({
+        label: 'Edit',
+        testId: 'row-actions-edit-menu-item',
+        onSelect: () => navigate(`/org/students/${s.id}/edit`),
+      });
     if (perms.can('student.create') && !s.userId && s.email)
       items.push({
         label: 'Send invitation',
+        testId: 'row-actions-invite-menu-item',
         onSelect: () =>
           invite.mutate(s.id, {
             onSuccess: () =>
@@ -237,7 +299,12 @@ export default function StudentsPage() {
           }),
       });
     if (perms.can('student.delete'))
-      items.push({ label: 'Remove', danger: true, onSelect: () => setRemoving(s) });
+      items.push({
+        label: 'Remove',
+        danger: true,
+        testId: 'row-actions-remove-menu-item',
+        onSelect: () => show({ removing: s }),
+      });
     return items;
   };
 
@@ -253,25 +320,32 @@ export default function StudentsPage() {
               <Button
                 variant="outline"
                 leftIcon={<Icon name="file" size={16} />}
-                onClick={() => setImporting(true)}
+                onClick={() => show({ importing: true })}
+                data-testid="students-import-btn"
               >
                 Import CSV
               </Button>
             </Can>
             <Can permission="student.create">
-              <Button leftIcon={<Icon name="plus" size={16} />} onClick={() => setCreating(true)}>
+              <Button
+                leftIcon={<Icon name="plus" size={16} />}
+                onClick={() => navigate('/org/students/new')}
+                data-testid="students-add-btn"
+              >
                 Add student
               </Button>
             </Can>
           </>
         }
       />
+      <ImportPanel open={importing} onClose={closeForm} className="mb-4" />
       <Card padded={false}>
         <FilterBar
-          canClear={Boolean(search || unit || status)}
+          canClear={Boolean(search || unit || status || batch)}
           onClear={() =>
             reset(() => {
               setSearch('');
+              setBatch('');
               setUnit('');
               setStatus('');
             })
@@ -283,6 +357,19 @@ export default function StudentsPage() {
             placeholder="Search name, roll no. or email"
             label="Search students"
           />
+          <div className="w-56">
+            <Select
+              label="Batch"
+              placeholder="All batches"
+              value={batch}
+              options={[
+                { value: 'none', label: 'No batch' },
+                ...(batchList.data?.items ?? []).map((b) => ({ value: b.id, label: b.name })),
+              ]}
+              onChange={(ev) => reset(() => setBatch(ev.target.value))}
+              data-testid="students-filter-batch-select"
+            />
+          </div>
           <div className="w-60">
             <Select
               label="Unit"
@@ -332,6 +419,19 @@ export default function StudentsPage() {
                 </div>
               ),
             },
+            {
+              key: 'batch',
+              header: 'Batch',
+              cell: (s) =>
+                s.batchName ?? (
+                  <span
+                    className="inline-flex rounded-full bg-butter px-2.5 py-1 text-xs font-bold text-butter-ink"
+                    data-testid="student-row-no-batch-badge"
+                  >
+                    No batch
+                  </span>
+                ),
+            },
             { key: 'unit', header: 'Unit', cell: (s) => s.academicUnitName ?? '—' },
             {
               key: 'login',
@@ -348,6 +448,7 @@ export default function StudentsPage() {
                 return items.length ? (
                   <Dropdown
                     label={`Actions for ${s.fullName}`}
+                    testId="row-actions"
                     trigger={<Icon name="more" />}
                     items={items}
                   />
@@ -355,6 +456,44 @@ export default function StudentsPage() {
               },
             },
           ]}
+          testId="student"
+          rowCode={(s) => s.rollNumber}
+          expandedRow={(s) =>
+            editing?.id === s.id ? (
+              <StudentForm open student={s} units={units} onClose={closeForm} />
+            ) : removing?.id === s.id ? (
+              <InlineConfirm
+                open
+                testId="student-remove"
+                title="Remove this student?"
+                confirmLabel="Remove student"
+                loading={remove.isPending}
+                onCancel={closeForm}
+                onConfirm={() =>
+                  remove.mutate(s.id, {
+                    onSuccess: () => {
+                      toast({ title: 'Student removed', variant: 'success' });
+                      closeForm();
+                    },
+                    onError: (err) => {
+                      toast({
+                        title: 'Could not remove the student',
+                        description: errorText(err),
+                        variant: 'error',
+                      });
+                      closeForm();
+                    },
+                  })
+                }
+                message={
+                  <>
+                    <strong>{s.fullName}</strong> loses access to your organization. Their exam
+                    attempts and results are kept for reports.
+                  </>
+                }
+              />
+            ) : null
+          }
         />
         {q.data && (
           <Pagination
@@ -366,49 +505,6 @@ export default function StudentsPage() {
           />
         )}
       </Card>
-
-      <StudentModal
-        open={creating || Boolean(editing)}
-        student={editing}
-        units={units}
-        onClose={() => {
-          setCreating(false);
-          setEditing(null);
-        }}
-      />
-      <ImportModal open={importing} onClose={() => setImporting(false)} />
-      <ConfirmDialog
-        open={Boolean(removing)}
-        title="Remove this student?"
-        confirmLabel="Remove student"
-        loading={remove.isPending}
-        onCancel={() => setRemoving(null)}
-        onConfirm={() =>
-          removing &&
-          remove.mutate(removing.id, {
-            onSuccess: () => {
-              toast({ title: 'Student removed', variant: 'success' });
-              setRemoving(null);
-            },
-            onError: (err) => {
-              toast({
-                title: 'Could not remove the student',
-                description: errorText(err),
-                variant: 'error',
-              });
-              setRemoving(null);
-            },
-          })
-        }
-        message={
-          removing && (
-            <>
-              <strong>{removing.fullName}</strong> loses access to your organization. Their exam
-              attempts and results are kept for reports.
-            </>
-          )
-        }
-      />
     </>
   );
 }

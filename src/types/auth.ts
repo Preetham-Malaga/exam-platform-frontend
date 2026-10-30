@@ -22,6 +22,14 @@ export interface MeResponse {
   permissions: string[];
   scopes: MeScope[];
   studentId: string | null;
+  /** The organization's display preferences (Settings › Branding and Date & time). */
+  preferences?: {
+    theme: 'violet' | 'ocean' | 'forest' | 'sunset' | null;
+    dateFormat: 'DD-MM-YYYY' | 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'DD MMM YYYY' | null;
+    timeFormat: '12' | '24' | null;
+    weekStart: 'Monday' | 'Sunday' | null;
+    timezone: string | null;
+  } | null;
 }
 
 export type InstitutionType = 'engineering' | 'degree' | 'school' | 'mba' | 'coaching' | 'training';
@@ -32,6 +40,11 @@ export interface RegisterRequest {
   ownerName: string;
   email: string;
   password: string;
+  city?: string;
+  state?: string;
+  mobile?: string;
+  heardFrom?: string;
+  acceptTerms?: true;
 }
 export interface RegisterResponse {
   organizationCode: string;

@@ -21,8 +21,22 @@ export function RowActions({
   onDelete?: (() => void) | undefined;
 }) {
   const items: MenuItem[] = [];
-  if (onEdit) items.push({ label: 'Edit', onSelect: onEdit });
-  if (onDelete) items.push({ label: 'Delete', danger: true, onSelect: onDelete });
+  if (onEdit) items.push({ label: 'Edit', testId: 'row-actions-edit-menu-item', onSelect: onEdit });
+  if (onDelete)
+    items.push({
+      label: 'Delete',
+      danger: true,
+      testId: 'row-actions-delete-menu-item',
+      onSelect: onDelete,
+    });
   if (!items.length) return null;
-  return <Dropdown label={`Actions for ${label}`} trigger={<Icon name="more" />} items={items} />;
+  // Static ids inside each row (row-actions-menu-btn): tests scope them by the row's data-entity-id.
+  return (
+    <Dropdown
+      label={`Actions for ${label}`}
+      testId="row-actions"
+      trigger={<Icon name="more" />}
+      items={items}
+    />
+  );
 }

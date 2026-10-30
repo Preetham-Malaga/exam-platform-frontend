@@ -1,5 +1,5 @@
 // PURPOSE: /org/results and /teacher/results - every result the caller may see, filterable by exam and outcome, with a
-//          per-attempt drawer showing each answer next to the correct one.
+//          per-attempt panel (opens under the row) showing each answer next to the correct one.
 // WHY: Guide Part 18 step 16. Teachers see only results of exams they created (RLS); students use /student/results.
 // DEPENDS ON: features/assessment/*, shared table/dialog components.
 
@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/feedback/States';
 import { Select } from '@/components/forms/Form';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Drawer } from '@/components/modals/Dialog';
+import { InlinePanel } from '@/components/inline/Inline';
 import { DataTable, Pagination, type SortState } from '@/components/tables/DataTable';
 import { FilterBar, SearchInput } from '@/components/tables/FilterBar';
 import { Badge } from '@/components/ui/Badge';
@@ -24,13 +24,14 @@ import { useExams, useResult, useResults } from '@/features/assessment/hooks';
 import type { ResultRow } from '@/types/assessment';
 import { cn } from '@/utils/cn';
 
-function ResultDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
+function ResultDetail({ id, onClose }: { id: string | null; onClose: () => void }) {
   const r = useResult(id);
   return (
-    <Drawer
+    <InlinePanel
       open={Boolean(id)}
       onClose={onClose}
       title={r.data ? `${r.data.studentName} · ${r.data.examName}` : 'Result'}
+      testId="result-detail"
     >
       {r.isPending ? (
         <LoadingState compact />
@@ -38,7 +39,10 @@ function ResultDrawer({ id, onClose }: { id: string | null; onClose: () => void 
         <ErrorState compact message={errorText(r.error)} />
       ) : (
         <div className="grid gap-4">
-          <dl className="grid grid-cols-2 gap-y-1 text-sm">
+          <dl
+            className="grid max-w-md grid-cols-2 gap-y-1 text-sm"
+            data-testid="result-detail-summary"
+          >
             <dt className="text-muted">Score</dt>
             <dd>
               {r.data.score} / {r.data.maximumScore} ({formatPercent(r.data.percentage)})
@@ -57,7 +61,13 @@ function ResultDrawer({ id, onClose }: { id: string | null; onClose: () => void 
           </dl>
           <ol className="grid gap-3" aria-label="Answers">
             {r.data.answers.map((a) => (
-              <li key={a.questionId} className="rounded-lg border border-border p-3">
+              <li
+                key={a.questionId}
+                className="rounded-lg border border-border p-3"
+                data-testid="result-detail-answer"
+                data-entity-id={a.questionId}
+                data-state={a.selectedOptionId ? (a.isCorrect ? 'correct' : 'wrong') : 'unanswered'}
+              >
                 <p className="mb-2 text-sm font-medium text-text">
                   {a.position}. {a.questionText}
                 </p>
@@ -93,7 +103,7 @@ function ResultDrawer({ id, onClose }: { id: string | null; onClose: () => void 
           </ol>
         </div>
       )}
-    </Drawer>
+    </InlinePanel>
   );
 }
 
@@ -224,13 +234,19 @@ export default function ResultsPage() {
                   size="sm"
                   variant="outline"
                   aria-label={`View answers of ${r.studentName}`}
-                  onClick={() => setOpen(r.id)}
+                  aria-expanded={open === r.id}
+                  onClick={() => setOpen(open === r.id ? null : r.id)}
+                  data-testid="result-row-view-btn"
                 >
                   View
                 </Button>
               ),
             },
           ]}
+          testId="result"
+          expandedRow={(r) =>
+            open === r.id ? <ResultDetail id={r.id} onClose={() => setOpen(null)} /> : null
+          }
         />
         {q.data && (
           <Pagination
@@ -242,7 +258,6 @@ export default function ResultsPage() {
           />
         )}
       </Card>
-      <ResultDrawer id={open} onClose={() => setOpen(null)} />
     </>
   );
 }

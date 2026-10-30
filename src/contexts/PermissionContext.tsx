@@ -56,6 +56,12 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 }
 
+/** Like usePermissions, but null outside the provider (for parts also rendered on their own, e.g. in tests). */
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives next to its provider on purpose
+export function usePermissionsOptional(): PermissionContextValue | null {
+  return useContext(PermissionContext);
+}
+
 // eslint-disable-next-line react-refresh/only-export-components -- hook lives next to its provider on purpose
 export function usePermissions(): PermissionContextValue {
   const ctx = useContext(PermissionContext);

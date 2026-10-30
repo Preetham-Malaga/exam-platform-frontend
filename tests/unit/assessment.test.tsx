@@ -3,6 +3,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { validateQuestion, type QuestionDraft } from '@/features/assessment/questionRules';
+import { checkQuestionCsv } from '@/features/assessment/questionCsv';
 import { fakeSession, resetFakeSupabase } from '../helpers/fakeSupabase';
 import { PERMS, meAs, mockApi, renderRoute, type Handler } from '../helpers/app';
 
@@ -125,18 +126,60 @@ describe('question rules', () => {
 });
 
 describe('question bank', () => {
-  it('lists questions and creates a published question with the chosen answer', async () => {
+  const catalog = {
+    courses: [{ id: 'c1', code: 'BTECH', name: 'B.Tech', status: 'active' }],
+    subjects: [
+      {
+        id: 's1',
+        code: 'EE201',
+        name: 'Electrical Machines',
+        status: 'active',
+        courseId: 'c1',
+        questionCount: 3,
+        questionStats: { published: 2, draft: 1, easy: 1, medium: 1, hard: 1 },
+      },
+    ],
+    topics: [{ id: 't1', name: 'Motors', subjectId: 's1', position: 1, questionCount: 0 }],
+    truncated: false,
+  };
+
+  it('starts with course cards, then subject tabs and question cards for the chosen course', async () => {
     setup('TEACHER', {
-      'GET /api/v1/questions': () => ({ data: page([Q('q1', 'What is Ohm’s law about?')]) }),
+      'GET /api/v1/catalog/tree': () => ({ data: catalog }),
+      'GET /api/v1/questions': () => ({
+        data: page([Q('q1', 'What is Ohm’s law about?', { status: 'draft' })]),
+      }),
+      'POST /api/v1/questions/q1/publish': () => ({ data: Q('q1', 'x') }),
+    });
+    renderRoute('/teacher/questions');
+    const card = await screen.findByTestId('questions-course-card');
+    expect(card).toHaveTextContent('3 questions');
+    expect(card).toHaveTextContent('2 published · 1 draft · 1 subjects');
+    expect(screen.getByTestId('questions-new-btn')).toHaveAttribute(
+      'href',
+      '/teacher/questions/new',
+    );
+    await userEvent.click(card);
+    expect(await screen.findByText('What is Ohm’s law about?')).toBeInTheDocument();
+    expect(called('GET /api/v1/questions').at(-1)!.query).toMatchObject({ courseId: 'c1' });
+    expect(screen.getAllByTestId('questions-subject-tab').map((t) => t.dataset.value)).toEqual([
+      'all',
+      's1',
+    ]);
+    await userEvent.click(screen.getByTestId('questions-card-publish-btn'));
+    await waitFor(() => expect(called('POST /api/v1/questions/q1/publish')).toHaveLength(1));
+  });
+
+  it('the new-question page creates a published question with the chosen answer', async () => {
+    setup('TEACHER', {
+      'GET /api/v1/catalog/tree': () => ({ data: catalog }),
       'POST /api/v1/questions': ({ body }) => ({
         status: 201,
         data: { ...Q('q2', body.questionText), options: [], correctOptionId: null },
       }),
     });
-    renderRoute('/teacher/questions');
-    expect(await screen.findByText('What is Ohm’s law about?')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'New question' }));
-    const dialog = await screen.findByRole('dialog', { name: 'New question' });
+    renderRoute('/teacher/questions/new?subject=s1');
+    const dialog = await screen.findByRole('region', { name: 'New question' });
     await waitFor(() => expect(within(dialog).getByLabelText(/Subject/)).toHaveValue('s1'));
     await userEvent.type(within(dialog).getByLabelText(/^Question/), 'Unit of resistance?');
     for (const [i, text] of ['Volt', 'Ohm', 'Ampere', 'Watt'].entries())
@@ -146,12 +189,42 @@ describe('question bank', () => {
     await waitFor(() => expect(called('POST /api/v1/questions')).toHaveLength(1));
     expect(called('POST /api/v1/questions')[0]!.body).toMatchObject({
       subjectId: 's1',
-      questionType: 'multiple_choice',
       questionText: 'Unit of resistance?',
       options: ['Volt', 'Ohm', 'Ampere', 'Watt'],
       correctOption: 1,
       publish: true,
     });
+  });
+
+  it('a question CSV is checked line by line before import', () => {
+    const csv =
+      'subject_code,topic,question,option_a,option_b,option_c,correct,difficulty,marks,negative_marks\n' +
+      'ee201,Motors,Slip at standstill?,0,1,2,B,hard,4,1\n' +
+      'XX9,,Bad subject?,a,b,,A,easy,1,0\n' +
+      'EE201,,Only one option?,a,,,A,easy,1,0\n' +
+      'EE201,,True or false?,True,False,,B,,,\n';
+    const { rows, missingColumns } = checkQuestionCsv(csv, catalog as never);
+    expect(missingColumns).toEqual([]);
+    expect(rows.map((r) => [r.row, Boolean(r.body)])).toEqual([
+      [2, true],
+      [3, false],
+      [4, false],
+      [5, true],
+    ]);
+    expect(rows[0]!.body).toMatchObject({
+      subjectId: 's1',
+      topicId: 't1',
+      correctOption: 1,
+      difficulty: 'hard',
+    });
+    expect(rows[1]!.problems[0]).toContain('subject XX9 not found');
+    expect(rows[2]!.problems).toContain('at least 2 options');
+    expect(rows[3]!.body).toMatchObject({
+      questionType: 'true_false',
+      difficulty: 'medium',
+      marks: 1,
+    });
+    expect(checkQuestionCsv('a,b\n1,2', catalog as never).missingColumns).toContain('subject_code');
   });
 
   it('students cannot open the question bank', async () => {
@@ -222,7 +295,12 @@ describe('exam page', () => {
     expect(await screen.findByText(/This exam is published/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Unpublish' }),
+      within(await screen.findByRole('group', { name: 'Unpublish this exam?' })).getByRole(
+        'button',
+        {
+          name: 'Unpublish',
+        },
+      ),
     );
     await waitFor(() => expect(called('POST /api/v1/exams/e1/unpublish')).toHaveLength(1));
   });
@@ -311,7 +389,7 @@ describe('student exam screen', () => {
     expect(await screen.findByText('All answers saved')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Submit exam' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Submit your exam?' });
+    const dialog = await screen.findByRole('group', { name: 'Submit your exam?' });
     expect(dialog).toHaveTextContent('You answered 1 of 2 questions; 1 unanswered');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Submit' }));
     await waitFor(() => expect(called('POST /api/v1/attempts/a1/submit')).toHaveLength(1));
@@ -382,7 +460,9 @@ describe('student exam screen', () => {
     renderRoute('/student/exams');
     await userEvent.click(await screen.findByRole('button', { name: 'Start Unit Test 1' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Start now' }),
+      within(await screen.findByRole('group', { name: 'Start Unit Test 1?' })).getByRole('button', {
+        name: 'Start now',
+      }),
     );
     expect(await screen.findByText('Unit of resistance?')).toBeInTheDocument();
     expect(called('POST /api/v1/exams/e1/start')).toHaveLength(1);
@@ -390,47 +470,129 @@ describe('student exam screen', () => {
 });
 
 describe('insights and dashboard', () => {
-  const dashboard = {
-    totals: {
-      students: 120,
-      teachers: 8,
-      courses: 3,
-      subjects: 12,
-      questions: 240,
-      publishedQuestions: 200,
-      exams: 15,
-      publishedExams: 4,
-      attemptsInProgress: 2,
+  const overview = {
+    filter: { range: '30' },
+    timezone: 'Asia/Kolkata',
+    headline: {
+      students: 124,
+      batches: 4,
+      examsOpen: 2,
+      examsDraft: 2,
+      results: 58,
+      attempts: 58,
+      averagePercentage: 68.7,
+      passed: 5,
+      passRate: 83,
+      liveToday: null,
     },
-    last30Days: { results: 96, averagePercentage: 67.5, passRate: 81.25 },
-    resultsByDay: Array.from({ length: 14 }, (_, i) => ({
-      day: `2026-01-${String(i + 1).padStart(2, '0')}`,
-      results: i,
-      passed: i,
-    })),
+    flow: {
+      courses: { courses: 3, subjects: 5, topics: 10, subjectsWithoutTopics: 0 },
+      questions: { total: 18, published: 14, draft: 4, easy: 7, medium: 7, hard: 4 },
+      exams: { open: 2, draft: 2, closed: 1, attempts: 58 },
+      students: { students: 124, batches: 4, teachers: 3, notInvited: 2, noBatch: 1 },
+      results: { results: 6, averagePercentage: 68.7, passRate: 83, belowPass: 1 },
+    },
+    perDay: [
+      { day: '2026-10-27', results: 2 },
+      { day: '2026-10-28', results: 9 },
+    ],
+    exams: [
+      {
+        id: 'e1',
+        name: 'Machines Mid-Term',
+        code: 'MACHMT',
+        state: 'published',
+        startAt: '2026-10-28T03:30:00Z',
+        endAt: '2099-10-31T18:00:00Z',
+        durationMinutes: 60,
+        courseName: 'B.Tech',
+        questionCount: 3,
+        assignmentCount: 1,
+        students: 81,
+        attempts: 41,
+        averagePercentage: 69,
+      },
+      {
+        id: 'e3',
+        name: 'Exam-02',
+        code: 'EXAM02',
+        state: 'draft',
+        startAt: null,
+        endAt: null,
+        durationMinutes: 60,
+        courseName: 'B.Tech',
+        questionCount: 0,
+        assignmentCount: 0,
+        students: 0,
+        attempts: 0,
+        averagePercentage: null,
+      },
+    ],
     recentResults: [
       {
         id: 'r1',
         studentName: 'Rahul Sen',
-        examName: 'Unit Test 1',
-        percentage: 75,
+        rollNumber: '101',
+        examName: 'Machines Mid-Term',
+        percentage: 88,
         status: 'Passed',
-        evaluatedAt: '2026-01-14T10:00:00Z',
+        evaluatedAt: '2026-10-28T13:31:00Z',
       },
     ],
-    topExams: [{ examId: 'e1', examName: 'Unit Test 1', attempts: 40, averagePercentage: 70 }],
+    topStudents: [],
+    teachers: [],
   };
 
-  it('the owner dashboard shows organization totals, 30-day figures and recent results', async () => {
-    setup('OWNER', { 'GET /api/v1/organizations/current/dashboard': () => ({ data: dashboard }) });
+  it('the owner dashboard shows tiles, the five-step flow, attention items and exams from one call', async () => {
+    setup('OWNER', {
+      'GET /api/v1/organizations/current/overview': () => ({ data: overview }),
+      'GET /api/v1/exams': () => ({ data: page([exam()]) }),
+    });
     renderRoute('/org/dashboard');
-    expect(await screen.findByText('120')).toBeInTheDocument();
-    expect(screen.getByText('81.25%')).toBeInTheDocument();
-    expect(screen.getByText('Rahul Sen')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Unit Test 1' })).toHaveAttribute(
+    expect(await screen.findByTestId('dashboard-tile-students-value')).toHaveTextContent('124');
+    expect(await screen.findByTestId('dashboard-tile-pass-rate-value')).toHaveTextContent('83%');
+    expect(screen.getByTestId('dashboard-tile-avg-score-value')).toHaveTextContent('68.7%');
+    expect(screen.getByTestId('dashboard-stage-questions-status')).toHaveTextContent(
+      '4 drafts to review',
+    );
+    expect(screen.getByTestId('dashboard-stage-results-status')).toHaveTextContent(
+      '1 need support',
+    );
+    const attention = screen.getAllByTestId('dashboard-attention-row').map((r) => r.textContent);
+    expect(attention[0]).toContain(
+      'Exam-02 is a draft with no questions, not assigned, no exam window',
+    );
+    expect(attention.join(' ')).toContain('2 students have not been invited');
+    expect(screen.getAllByTestId('dashboard-exam-row')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Machines Mid-Term' })).toHaveAttribute(
       'href',
       '/org/exams/e1',
     );
+    expect(screen.getByTestId('dashboard-stage-courses')).toHaveAttribute('href', '/org/courses');
+    expect(screen.getByText('Rahul Sen')).toBeInTheDocument();
+  });
+
+  it('changing a filter asks the API again and can be reset', async () => {
+    setup('OWNER', {
+      'GET /api/v1/organizations/current/overview': () => ({ data: overview }),
+      'GET /api/v1/exams': () => ({ data: page([exam()]) }),
+    });
+    renderRoute('/org/dashboard');
+    await screen.findByTestId('dashboard-tile-students-value');
+    expect(await screen.findByTestId('dashboard-filter-reset-btn')).toBeDisabled();
+    await userEvent.selectOptions(
+      await screen.findByTestId('dashboard-filter-date-range-select'),
+      '7',
+    );
+    await waitFor(() =>
+      expect(called('GET /api/v1/organizations/current/overview').at(-1)!.query).toMatchObject({
+        range: '7',
+      }),
+    );
+    await userEvent.click(await screen.findByTestId('dashboard-filter-reset-btn'));
+    // Back to the default range; its numbers come from the cache, so no new request is needed.
+    expect(screen.getByTestId('dashboard-filter-date-range-select')).toHaveValue('30');
+    expect(screen.getByTestId('dashboard-filter-reset-btn')).toBeDisabled();
   });
 
   it('results open a drawer with each answer next to the correct one', async () => {
@@ -504,7 +666,7 @@ describe('insights and dashboard', () => {
     });
     renderRoute('/org/results');
     await userEvent.click(await screen.findByRole('button', { name: 'View answers of Rahul Sen' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Rahul Sen · Unit Test 1' });
+    const drawer = await screen.findByRole('region', { name: 'Rahul Sen · Unit Test 1' });
     expect(await within(drawer).findByText('1. Unit of resistance?')).toBeInTheDocument();
     expect(within(drawer).getByText('Wrong · 0/2 marks')).toBeInTheDocument();
   });

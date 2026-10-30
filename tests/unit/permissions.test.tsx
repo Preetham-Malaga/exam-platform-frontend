@@ -93,24 +93,29 @@ describe('navigation', () => {
   it('picks the menu by role and filters it by permission', () => {
     const asMe = (x: typeof owner) => ({ isPlatformAdmin: false, roles: x.roles });
     expect(labels(filterNavigation(navigationFor(asMe(owner)), (p) => can(owner, p)))).toContain(
-      'Users',
+      'Admins',
     );
     expect(labels(filterNavigation(navigationFor(asMe(admin)), (p) => can(admin, p)))).toContain(
-      'Users',
+      'Admins',
     );
     expect(labels(filterNavigation(navigationFor(asMe(teacher)), (p) => can(teacher, p)))).toEqual([
       'Dashboard',
-      'Subjects',
-      'Topics',
+      'Courses',
       'Question Bank',
       'Exams',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
       'Results',
     ]);
     expect(labels(filterNavigation(navigationFor(asMe(student)), (p) => can(student, p)))).toEqual([
-      'Dashboard',
+      'Home',
       'My Exams',
-      'Results',
+      'My Results',
       'Leaderboard',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
     ]);
     expect(navigationFor({ isPlatformAdmin: true, roles: ['ORGANIZATION_OWNER'] })).toBe(
       platformNavigation,
@@ -120,7 +125,7 @@ describe('navigation', () => {
   });
   it('a user with a limited permission set sees only those items', () => {
     const only = (p: string) => ['course.read', 'subject.read'].includes(p);
-    expect(labels(filterNavigation(orgNavigation, only as never))).toEqual(['Courses', 'Subjects']);
+    expect(labels(filterNavigation(orgNavigation, only as never))).toEqual(['Courses']);
   });
 });
 

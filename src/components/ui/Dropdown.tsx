@@ -4,12 +4,15 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/utils/cn';
+import { slug } from '@/utils/testid';
 
 export interface MenuItem {
   label: string;
   onSelect: () => void;
   danger?: boolean;
   disabled?: boolean;
+  /** Defaults to <menu>-<label>-menu-item; set it when the label may change (e.g. translated). */
+  testId?: string;
 }
 
 export function Dropdown({
@@ -17,12 +20,16 @@ export function Dropdown({
   items,
   label,
   align = 'right',
+  testId,
 }: {
   trigger: ReactNode;
   items: MenuItem[];
   label: string;
   align?: 'left' | 'right';
+  /** Locator prefix: "topbar-account" gives topbar-account-menu-btn, topbar-account-menu and its items. */
+  testId?: string;
 }) {
+  const prefix = testId ?? slug(label);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -62,8 +69,10 @@ export function Dropdown({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={label}
+        data-testid={`${prefix}-menu-btn`}
+        data-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="rounded-lg p-1.5 text-muted hover:bg-background hover:text-text"
+        className="grid h-9 w-9 place-items-center rounded-xl text-muted hover:bg-bg hover:text-ink"
       >
         {trigger}
       </button>
@@ -72,9 +81,10 @@ export function Dropdown({
           id={menuId}
           role="menu"
           aria-label={label}
+          data-testid={`${prefix}-menu`}
           onKeyDown={onMenuKey}
           className={cn(
-            'absolute z-40 mt-1 min-w-44 rounded-lg border border-border bg-card py-1 shadow-lg',
+            'absolute z-40 mt-1 min-w-44 rounded-row border border-border bg-surface p-1.5 shadow-lg',
             align === 'right' ? 'right-0' : 'left-0',
           )}
         >
@@ -84,12 +94,14 @@ export function Dropdown({
               role="menuitem"
               type="button"
               disabled={it.disabled}
+              data-testid={it.testId ?? `${prefix}-${slug(it.label)}-menu-item`}
+              data-disabled={it.disabled || undefined}
               onClick={() => {
                 setOpen(false);
                 it.onSelect();
               }}
               className={cn(
-                'block w-full px-3 py-2 text-left text-sm hover:bg-background disabled:opacity-50',
+                'block w-full rounded-xl px-3 py-2 text-left font-semibold hover:bg-bg disabled:opacity-50',
                 it.danger ? 'text-error' : 'text-text',
               )}
             >

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/contexts/PermissionContext';
 import type { PermissionCode } from '@/utils/permissions';
 import { homePathFor, safeReturnPath } from './home';
+import { OrganizationNotActive } from './OrganizationNotActive';
 
 /** Signed in to Supabase, but the backend could not load the account (e.g. the API is down). */
 function AccountLoadError() {
@@ -19,11 +20,16 @@ function AccountLoadError() {
     <div className="mx-auto max-w-md p-6">
       <ErrorState
         title="We could not load your account"
+        testId="account-load-error"
         message={auth.error ?? undefined}
         onRetry={auth.refresh}
       />
       <div className="mt-2 text-center">
-        <Button variant="ghost" onClick={() => void auth.signOut()}>
+        <Button
+          variant="ghost"
+          onClick={() => void auth.signOut()}
+          data-testid="account-load-error-signout-btn"
+        >
           Sign out
         </Button>
       </div>
@@ -40,6 +46,10 @@ export function RequireAuth() {
       <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
     );
   if (auth.status === 'error') return <AccountLoadError />;
+  // Waiting for approval (or suspended): the API refuses organization requests, so explain instead of showing the app.
+  const org = auth.me?.organization;
+  if (org && org.status !== 'active' && !auth.me?.isPlatformAdmin)
+    return <OrganizationNotActive status={org.status} name={org.name} />;
   return <Outlet />;
 }
 

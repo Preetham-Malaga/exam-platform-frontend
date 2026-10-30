@@ -4,10 +4,10 @@
 
 import { api } from '@/lib/api';
 import { API_PREFIX } from '@/lib/constants';
+import type { Overview, OverviewFilter } from '@/types/overview';
 import type {
   Assignment,
   AvailableExam,
-  Dashboard,
   Exam,
   ExamBody,
   ExamList,
@@ -28,6 +28,9 @@ import type {
   StudentPerformance,
   SubmitResponse,
   AttemptMeta,
+  ExamState,
+  QuestionImportResult,
+  QuestionImportRow,
 } from '@/types/assessment';
 
 const P = API_PREFIX;
@@ -47,10 +50,13 @@ export const questionService = {
   setStatus: (id: string, status: 'draft' | 'archived') =>
     api.patch<Question>(`${P}/questions/${id}/status`, { status }),
   remove: (id: string) => api.delete<{ deleted: true }>(`${P}/questions/${id}`),
+  import: (rows: QuestionImportRow[], publish: boolean) =>
+    api.post<QuestionImportResult>(`${P}/questions/import`, { rows, publish }),
 };
 
 export const examService = {
-  list: (p: ExamListParams) => api.get<ExamList>(`${P}/exams?${qs({ ...p })}`),
+  list: (p: ExamListParams) =>
+    api.get<ExamList & { counts?: Record<ExamState, number> }>(`${P}/exams?${qs({ ...p })}`),
   get: (id: string) => api.get<Exam>(`${P}/exams/${id}`),
   create: (b: ExamBody) => api.post<Exam>(`${P}/exams`, b),
   update: (id: string, b: Partial<ExamBody>) => api.patch<Exam>(`${P}/exams/${id}`, b),
@@ -60,6 +66,7 @@ export const examService = {
     api.put<Exam>(`${P}/exams/${id}/assignments`, { targets }),
   publish: (id: string) => api.post<Exam>(`${P}/exams/${id}/publish`),
   unpublish: (id: string) => api.post<Exam>(`${P}/exams/${id}/unpublish`),
+  duplicate: (id: string) => api.post<Exam>(`${P}/exams/${id}/duplicate`),
   remove: (id: string) => api.delete<{ deleted: true }>(`${P}/exams/${id}`),
 };
 
@@ -98,5 +105,6 @@ export const insightService = {
     ),
   studentPerformance: (search?: string) =>
     api.get<{ items: StudentPerformance[] }>(`${P}/reports/student-performance?${qs({ search })}`),
-  dashboard: () => api.get<Dashboard>(`${P}/organizations/current/dashboard`),
+  overview: (f: OverviewFilter) =>
+    api.get<Overview>(`${P}/organizations/current/overview?${qs({ ...f })}`),
 };

@@ -49,6 +49,7 @@ export interface QuestionListParams {
   page: number;
   pageSize: number;
   search?: string;
+  courseId?: string;
   subjectId?: string;
   topicId?: string;
   status?: QuestionStatus;
@@ -69,12 +70,15 @@ export interface ExamSettings {
   showAnswers: boolean;
   leaderboardEnabled: boolean;
 }
+/** Prototype tabs: draft (draft or unpublished), published (open or upcoming), closed (window over or archived). */
+export type ExamState = 'draft' | 'published' | 'closed';
 export interface ExamSummary {
   id: string;
   examCode: string;
   name: string;
   description: string | null;
   status: ExamStatus;
+  state?: ExamState;
   courseId: string | null;
   courseName: string | null;
   durationMinutes: number;
@@ -128,6 +132,7 @@ export interface ExamListParams {
   pageSize: number;
   search?: string;
   status?: ExamStatus;
+  state?: ExamState;
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -307,32 +312,12 @@ export interface StudentPerformance {
   passed: number;
   lastResultAt: string | null;
 }
-export interface Dashboard {
-  totals: {
-    students: number;
-    teachers: number;
-    courses: number;
-    subjects: number;
-    questions: number;
-    publishedQuestions: number;
-    exams: number;
-    publishedExams: number;
-    attemptsInProgress: number;
-  };
-  last30Days: { results: number; averagePercentage: number | null; passRate: number | null };
-  resultsByDay: Array<{ day: string; results: number; passed: number }>;
-  recentResults: Array<{
-    id: string;
-    studentName: string;
-    examName: string;
-    percentage: number;
-    status: string;
-    evaluatedAt: string;
-  }>;
-  topExams: Array<{
-    examId: string;
-    examName: string;
-    attempts: number;
-    averagePercentage: number | null;
-  }>;
+
+/** POST /questions/import: one row per CSV line (row = line number shown back in errors). */
+export interface QuestionImportRow extends QuestionBody {
+  row: number;
+}
+export interface QuestionImportResult {
+  created: number;
+  errors: Array<{ row: number; message: string }>;
 }

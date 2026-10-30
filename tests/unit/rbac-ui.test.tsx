@@ -83,18 +83,21 @@ function setup(role: keyof typeof PERMS, me: Record<string, unknown> = {}) {
 afterEach(() => vi.unstubAllGlobals());
 
 const openNav = async () => {
-  await userEvent.click(await screen.findByRole('button', { name: 'Toggle navigation' }));
-  return within(await screen.findByRole('dialog', { name: 'Navigation' }));
+  const menu = await screen.findByTestId('nav');
+  // Groups start closed: open them all so every link the role may use is listed.
+  for (const b of within(menu).queryAllByRole('button', { expanded: false }))
+    await userEvent.click(b);
+  return within(menu);
 };
 const rowFor = (name: string) => screen.getByRole('row', { name: new RegExp(name) });
 
 describe('the menu follows the role (UX only)', () => {
-  it('owner sees Users and Roles & Permissions', async () => {
+  it('owner sees Admins and Roles & Permissions', async () => {
     setup('OWNER');
     renderRoute('/app');
     const nav = await openNav();
     for (const l of [
-      'Users',
+      'Admins',
       'Roles & Permissions',
       'Organization Profile',
       'Courses',
@@ -102,10 +105,10 @@ describe('the menu follows the role (UX only)', () => {
     ])
       expect(nav.getByRole('link', { name: new RegExp(l) }), l).toBeInTheDocument();
   });
-  it('admin sees Users too', async () => {
+  it('admin sees Admins too', async () => {
     setup('ADMIN');
     renderRoute('/app');
-    expect((await openNav()).getByRole('link', { name: /Users/ })).toBeInTheDocument();
+    expect((await openNav()).getByRole('link', { name: /Admins/ })).toBeInTheDocument();
   });
   it('teacher sees only teacher items', async () => {
     setup('TEACHER');
@@ -113,10 +116,12 @@ describe('the menu follows the role (UX only)', () => {
     const nav = await openNav();
     expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
       'Dashboard',
-      'Subjects',
-      'Topics',
+      'Courses',
       'Question Bank',
       'Exams',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
       'Results',
     ]);
   });
@@ -125,24 +130,20 @@ describe('the menu follows the role (UX only)', () => {
     renderRoute('/app');
     const nav = await openNav();
     expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Dashboard',
+      'Home',
       'My Exams',
-      'Results',
+      'My Results',
       'Leaderboard',
+      'Live Classes',
+      'Recorded Classes',
+      'Materials',
     ]);
   });
   it('platform staff get the platform menu, not an organization menu', async () => {
     setup('OWNER', { isPlatformAdmin: true, roles: [], permissions: [], organization: null });
     renderRoute('/app');
     const nav = await openNav();
-    expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Dashboard',
-      'Organizations',
-      'Users',
-      'Plans',
-      'Subscriptions',
-      'Audit Logs',
-    ]);
+    expect(nav.getAllByRole('link').map((l) => l.textContent)).toEqual(['Organizations']);
   });
 });
 
@@ -154,6 +155,8 @@ describe('unauthorized pages are refused, not just hidden', () => {
     ['teacher', 'TEACHER', '/org/settings'],
     ['student', 'STUDENT', '/org/profile'],
     ['student', 'STUDENT', '/org/users'],
+    ['teacher', 'TEACHER', '/org/students/new'],
+    ['teacher', 'TEACHER', '/org/batches/new'],
   ] as const)('%s opening %s is denied', async (_who, role, path) => {
     setup(role);
     renderRoute(path);
@@ -246,7 +249,7 @@ describe('Users page', () => {
       within(rowFor('Kiran Rao')).getByRole('button', { name: 'Actions for Kiran Rao' }),
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Change role?' });
+    const dialog = await screen.findByRole('group', { name: 'Change role?' });
     expect(dialog).toHaveTextContent('Their access changes immediately');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Change role' }));
     await waitFor(() =>
@@ -268,7 +271,9 @@ describe('Users page', () => {
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+      within(await screen.findByRole('group', { name: 'Change role?' })).getByRole('button', {
+        name: 'Cancel',
+      }),
     );
     expect(calls.some((c) => c.key.startsWith('PUT'))).toBe(false);
   });
@@ -286,7 +291,9 @@ describe('Users page', () => {
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Make teacher' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Change role' }),
+      within(await screen.findByRole('group', { name: 'Change role?' })).getByRole('button', {
+        name: 'Change role',
+      }),
     );
     expect(await screen.findByText('Could not change the role')).toBeInTheDocument();
     expect(screen.getByText('Only the organization owner can manage admins.')).toBeInTheDocument();
@@ -300,7 +307,7 @@ describe('Users page', () => {
       within(rowFor('Meera Nair')).getByRole('button', { name: 'Actions for Meera Nair' }),
     );
     await userEvent.click(screen.getByRole('menuitem', { name: 'Suspend' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Suspend this user?' });
+    const dialog = await screen.findByRole('group', { name: 'Suspend this user?' });
     expect(dialog).toHaveTextContent('lose access to this organization right away');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Suspend' }));
     await waitFor(() =>
@@ -372,7 +379,7 @@ describe('Invite admin (owner only)', () => {
     setup('OWNER');
     renderRoute('/org/users');
     await userEvent.click(await screen.findByRole('button', { name: 'Invite admin' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Invite an admin' });
+    const dialog = await screen.findByRole('region', { name: 'Invite an admin' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
     expect(await within(dialog).findByText('Enter at least 2 characters')).toBeInTheDocument();
     expect(within(dialog).getByText('Enter an email address')).toBeInTheDocument();
@@ -388,7 +395,7 @@ describe('Invite admin (owner only)', () => {
     );
     expect(await screen.findByText('Admin added')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Invite an admin' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('region', { name: 'Invite an admin' })).not.toBeInTheDocument(),
     );
   });
 
@@ -400,17 +407,17 @@ describe('Invite admin (owner only)', () => {
     });
     renderRoute('/org/users');
     await userEvent.click(await screen.findByRole('button', { name: 'Invite admin' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Invite an admin' });
+    const dialog = await screen.findByRole('region', { name: 'Invite an admin' });
     await userEvent.type(within(dialog).getByLabelText(/Full name/), 'Priya Shah');
     await userEvent.type(within(dialog).getByLabelText(/Email/), 'priya@college.test');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
     expect(await screen.findByText('Could not add the admin')).toBeInTheDocument();
-    expect(screen.getByRole('dialog', { name: 'Invite an admin' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Invite an admin' })).toBeInTheDocument();
   });
 });
 
 describe('Roles & permissions page', () => {
-  it('shows the matrix from the server: owner has everything, admin lacks organization.update, student has two', async () => {
+  it('shows the matrix from the server: owner has everything, admin lacks organization.update, student has three', async () => {
     setup('OWNER');
     renderRoute('/org/settings/permissions');
     expect(await screen.findByRole('heading', { name: 'Roles & permissions' })).toBeInTheDocument();
@@ -433,7 +440,7 @@ describe('Roles & permissions page', () => {
     expect(
       within(table).getByRole('img', { name: 'Teacher cannot user.update' }),
     ).toBeInTheDocument();
-    expect(within(table).getAllByRole('img', { name: /^Student can / })).toHaveLength(2);
+    expect(within(table).getAllByRole('img', { name: /^Student can / })).toHaveLength(3);
   });
   it('/org/settings redirects to it, and an admin may read it', async () => {
     setup('ADMIN');

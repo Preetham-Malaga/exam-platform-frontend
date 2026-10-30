@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ErrorState, LoadingState } from '@/components/feedback/States';
 import { useToast } from '@/components/feedback/Toast';
-import { ConfirmDialog } from '@/components/modals/Dialog';
+import { InlineConfirm } from '@/components/inline/Inline';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -118,7 +118,11 @@ function Runner({ paper }: { paper: Paper }) {
   const low = remaining < 5 * 60_000;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+    <div
+      className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_280px]"
+      data-testid="page-exam-runner"
+      data-ready="true"
+    >
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -130,6 +134,8 @@ function Runner({ paper }: { paper: Paper }) {
           <div
             role="timer"
             aria-label="Time remaining"
+            data-testid="exam-runner-timer"
+            data-remaining-seconds={Math.max(0, Math.floor(remaining / 1000))}
             className={cn(
               'rounded-lg px-4 py-2 font-mono text-xl font-bold',
               low ? 'bg-error/15 text-error' : 'bg-secondary/30 text-primary',
@@ -139,7 +145,7 @@ function Runner({ paper }: { paper: Paper }) {
           </div>
         </div>
         {q && (
-          <Card>
+          <Card testId="exam-runner-question" entityId={q.id}>
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-sm text-muted">
                 {q.marks} mark{q.marks === 1 ? '' : 's'}
@@ -150,6 +156,7 @@ function Runner({ paper }: { paper: Paper }) {
                 variant={answers[q.id]?.flagged ? 'secondary' : 'ghost'}
                 aria-pressed={Boolean(answers[q.id]?.flagged)}
                 onClick={() => update(q.id, { flagged: !answers[q.id]?.flagged })}
+                data-testid="exam-runner-flag-btn"
               >
                 {answers[q.id]?.flagged ? 'Flagged for review' : 'Flag for review'}
               </Button>
@@ -166,6 +173,9 @@ function Runner({ paper }: { paper: Paper }) {
                 return (
                   <label
                     key={o.id}
+                    data-testid="exam-runner-option"
+                    data-entity-id={o.id}
+                    data-selected={selected}
                     className={cn(
                       'flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors',
                       selected
@@ -179,6 +189,7 @@ function Runner({ paper }: { paper: Paper }) {
                       className="h-4 w-4 accent-primary"
                       checked={selected}
                       onChange={() => update(q.id, { optionId: o.id })}
+                      data-testid="exam-runner-option-radio"
                     />
                     <span className="font-semibold text-muted">{String.fromCharCode(65 + i)}.</span>
                     <span className="text-text">{o.text}</span>
@@ -192,6 +203,7 @@ function Runner({ paper }: { paper: Paper }) {
                 size="sm"
                 disabled={!answers[q.id]?.optionId}
                 onClick={() => update(q.id, { optionId: null })}
+                data-testid="exam-runner-clear-btn"
               >
                 Clear answer
               </Button>
@@ -200,13 +212,18 @@ function Runner({ paper }: { paper: Paper }) {
                   variant="outline"
                   disabled={index === 0}
                   onClick={() => setIndex((i) => i - 1)}
+                  data-testid="exam-runner-prev-btn"
                 >
                   Previous
                 </Button>
                 {index < questions.length - 1 ? (
-                  <Button onClick={() => setIndex((i) => i + 1)}>Next</Button>
+                  <Button onClick={() => setIndex((i) => i + 1)} data-testid="exam-runner-next-btn">
+                    Next
+                  </Button>
                 ) : (
-                  <Button onClick={() => setConfirming(true)}>Finish exam</Button>
+                  <Button onClick={() => setConfirming(true)} data-testid="exam-runner-finish-btn">
+                    Finish exam
+                  </Button>
                 )}
               </span>
             </div>
@@ -226,12 +243,15 @@ function Runner({ paper }: { paper: Paper }) {
                     aria-label={`Question ${i + 1}${a?.optionId ? ', answered' : ''}${a?.flagged ? ', flagged' : ''}`}
                     aria-current={i === index ? 'step' : undefined}
                     onClick={() => setIndex(i)}
+                    data-testid="exam-runner-palette-btn"
+                    data-entity-id={x.id}
+                    data-state={a?.flagged ? 'flagged' : a?.optionId ? 'answered' : 'unanswered'}
                     className={cn(
                       'h-9 w-full rounded-md border text-sm font-semibold',
                       a?.flagged
                         ? 'border-warning bg-warning/20 text-text'
                         : a?.optionId
-                          ? 'border-primary bg-primary text-white'
+                          ? 'border-primary bg-primary text-on-primary'
                           : 'border-border bg-card text-text',
                       i === index && 'ring-2 ring-secondary ring-offset-1',
                     )}
@@ -242,47 +262,63 @@ function Runner({ paper }: { paper: Paper }) {
               );
             })}
           </ul>
-          <p className="mt-3 text-xs text-muted" aria-live="polite">
+          <p
+            className="mt-3 text-xs text-muted"
+            aria-live="polite"
+            data-testid="exam-runner-save-status"
+            data-state={saveState}
+          >
             {saveState === 'saving' && 'Saving…'}
             {saveState === 'saved' && 'All answers saved'}
             {saveState === 'error' && (
               <span className="text-error">
                 Some answers are not saved.{' '}
-                <button type="button" className="font-semibold underline" onClick={retry}>
+                <button
+                  type="button"
+                  className="font-semibold underline"
+                  onClick={retry}
+                  data-testid="exam-runner-retry-save-btn"
+                >
                   Retry
                 </button>
               </span>
             )}
           </p>
         </Card>
-        <Button onClick={() => setConfirming(true)} loading={submitting}>
-          Submit exam
-        </Button>
+        {!confirming && (
+          <Button
+            onClick={() => setConfirming(true)}
+            loading={submitting}
+            data-testid="exam-runner-submit-btn"
+          >
+            Submit exam
+          </Button>
+        )}
+        <InlineConfirm
+          testId="exam-runner-submit"
+          open={confirming}
+          tone="primary"
+          title="Submit your exam?"
+          confirmLabel="Submit"
+          loading={submitting}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => void submit(false)}
+          message={
+            <>
+              You answered <strong>{answeredCount}</strong> of {questions.length} questions
+              {unanswered ? (
+                <>
+                  ; <strong>{unanswered}</strong> unanswered
+                </>
+              ) : null}
+              . You cannot change your answers after submitting.
+              {unsaved.size > 0 && (
+                <span className="mt-2 block text-error">Some answers are not saved yet.</span>
+              )}
+            </>
+          }
+        />
       </aside>
-
-      <ConfirmDialog
-        open={confirming}
-        tone="primary"
-        title="Submit your exam?"
-        confirmLabel="Submit"
-        loading={submitting}
-        onCancel={() => setConfirming(false)}
-        onConfirm={() => void submit(false)}
-        message={
-          <>
-            You answered <strong>{answeredCount}</strong> of {questions.length} questions
-            {unanswered ? (
-              <>
-                ; <strong>{unanswered}</strong> unanswered
-              </>
-            ) : null}
-            . You cannot change your answers after submitting.
-            {unsaved.size > 0 && (
-              <span className="mt-2 block text-error">Some answers are not saved yet.</span>
-            )}
-          </>
-        }
-      />
     </div>
   );
 }

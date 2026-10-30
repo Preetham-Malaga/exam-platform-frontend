@@ -21,13 +21,15 @@ export const IMPORT_BATCH = 500;
 export const studentService = {
   list(p: StudentListParams) {
     const q = new URLSearchParams({ page: String(p.page), pageSize: String(p.pageSize) });
-    for (const k of ['search', 'status', 'academicUnitId', 'sort', 'order'] as const) {
+    for (const k of ['search', 'status', 'academicUnitId', 'batchId', 'sort', 'order'] as const) {
       const v = p[k];
       if (v) q.set(k, v);
     }
     if (p.unplaced) q.set('unplaced', 'true');
+    if (p.noBatch) q.set('noBatch', 'true');
     return api.get<StudentList>(`${P}?${q.toString()}`);
   },
+  get: (id: string) => api.get<Student>(`${P}/${id}`),
   create: (b: CreateStudentBody) => api.post<Student>(P, b),
   invite: (id: string) => api.post<Student>(`${P}/${id}/invite`),
   update: (id: string, b: UpdateStudentBody) => api.patch<Student>(`${P}/${id}`, b),
