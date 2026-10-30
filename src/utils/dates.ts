@@ -4,12 +4,21 @@
 // DEPENDS ON: nothing.
 
 export type DateFormat = 'DD-MM-YYYY' | 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'DD MMM YYYY';
+/** The organization's choice (Settings › Date & time), set once after sign-in by AppLayout. */
+const prefs: { dateFormat: DateFormat; timeFormat: '12' | '24' } = {
+  dateFormat: 'DD-MM-YYYY',
+  timeFormat: '12',
+};
+export function setDatePreferences(p: { dateFormat?: DateFormat; timeFormat?: '12' | '24' }): void {
+  if (p.dateFormat) prefs.dateFormat = p.dateFormat;
+  if (p.timeFormat) prefs.timeFormat = p.timeFormat;
+}
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** "2026-10-28" or an ISO timestamp → "28-10-2026" (in the browser's time zone for timestamps). */
 export function fmtDate(
   value: string | Date | null | undefined,
-  format: DateFormat = 'DD-MM-YYYY',
+  format: DateFormat = prefs.dateFormat,
 ) {
   if (!value) return '—';
   let y: string, m: string, d: string;
@@ -37,7 +46,10 @@ export function fmtDate(
 }
 
 /** ISO timestamp → "7:05 pm" (12-hour) or "19:05" (24-hour). */
-export function fmtTime(value: string | Date | null | undefined, hours: '12' | '24' = '12') {
+export function fmtTime(
+  value: string | Date | null | undefined,
+  hours: '12' | '24' = prefs.timeFormat,
+) {
   if (!value) return '';
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return '';

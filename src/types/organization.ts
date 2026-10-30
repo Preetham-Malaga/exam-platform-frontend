@@ -5,6 +5,12 @@
 export interface Branding {
   primaryColor?: string;
   tagline?: string;
+  /** Colour theme for everyone (Settings › Branding). */
+  theme?: 'violet' | 'ocean' | 'forest' | 'sunset';
+  /** Settings › Date & time. */
+  dateFormat?: 'DD-MM-YYYY' | 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'DD MMM YYYY';
+  timeFormat?: '12' | '24';
+  weekStart?: 'Monday' | 'Sunday';
 }
 
 export interface Organization {

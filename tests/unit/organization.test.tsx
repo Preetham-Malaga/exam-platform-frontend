@@ -280,4 +280,23 @@ describe('api client token handling', () => {
       ).Authorization,
     ).toBe('Bearer abc');
   });
+  it('Date & time: the preview follows the choice and saving sends formats and time zone', async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Date & time' }));
+    expect(screen.getByTestId('org-datetime-preview')).toHaveTextContent('28-10-2026');
+    await userEvent.selectOptions(
+      screen.getByTestId('org-datetime-date-format-select'),
+      'DD MMM YYYY',
+    );
+    await userEvent.selectOptions(screen.getByTestId('org-datetime-time-format-select'), '24');
+    expect(screen.getByTestId('org-datetime-preview')).toHaveTextContent('28 Oct 2026');
+    await userEvent.click(screen.getByTestId('org-datetime-save-btn'));
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'PATCH' && c.url.endsWith('/settings'))).toBe(true),
+    );
+    expect(calls.find((c) => c.method === 'PATCH')!.body).toEqual({
+      branding: { dateFormat: 'DD MMM YYYY', timeFormat: '24', weekStart: 'Monday' },
+      timezone: 'Asia/Kolkata',
+    });
+  });
 });

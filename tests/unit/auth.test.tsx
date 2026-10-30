@@ -56,7 +56,7 @@ describe('route guards', () => {
     expect(calls.filter((c) => c.key === 'GET /api/v1/organizations/current')).toHaveLength(0); // protected data is never requested
     await signInAs();
     expect(
-      await screen.findByRole('heading', { name: 'Organization profile' }),
+      await screen.findByRole('heading', { name: 'Organization Profile' }),
     ).toBeInTheDocument();
   });
 
@@ -166,7 +166,7 @@ describe('session expiry', () => {
     api['GET /api/v1/organizations/current'] = () => ({ data: org });
     await signInAs();
     expect(
-      await screen.findByRole('heading', { name: 'Organization profile' }),
+      await screen.findByRole('heading', { name: 'Organization Profile' }),
     ).toBeInTheDocument();
   });
 });

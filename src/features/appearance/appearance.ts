@@ -47,6 +47,21 @@ export function applyAppearance(a: Appearance): void {
   else root.setAttribute('data-brand', a.brand);
 }
 
+/** Has this person picked a colour theme themselves? If not, the organization's theme applies. */
+export function hasOwnBrand(): boolean {
+  try {
+    return Boolean((JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Appearance>).brand);
+  } catch {
+    return false;
+  }
+}
+
+/** The organization's theme (Settings › Branding), unless the person chose their own in Appearance. */
+export function applyOrgBrand(brand: Brand | undefined): void {
+  if (!brand || hasOwnBrand()) return;
+  applyAppearance({ ...readAppearance(), brand });
+}
+
 export function saveAppearance(a: Appearance): void {
   applyAppearance(a);
   try {

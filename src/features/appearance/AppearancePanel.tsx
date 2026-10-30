@@ -55,7 +55,12 @@ export function AppearancePanel() {
               </button>
             ))}
           </div>
-          <div role="radiogroup" aria-label="Colour theme" className="grid grid-cols-2 gap-2" data-testid="appearance-theme">
+          <div
+            role="radiogroup"
+            aria-label="Colour theme"
+            className="grid grid-cols-2 gap-2"
+            data-testid="appearance-theme"
+          >
             {BRANDS.map((b) => (
               <button
                 key={b.value}
