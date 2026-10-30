@@ -1,7 +1,7 @@
 # Implementation plan: rebuild the UI to match the approved prototype
 
 Source of truth: `docs/design/exam-platform-prototype.html`. Open it in a browser and switch roles in the black bar.
-Work runs in the order of section 10 of the brief, with one commit or more per step. Status: ◐ to do · ◐ in progress · ☑ done.
+Work runs in the order of section 10 of the brief, with one commit or more per step. Status: ◐ to do · ◐ in progress · ◐ done.
 
 ## Stack (unchanged)
 
@@ -85,4 +85,8 @@ Each new field or endpoint is added with a reversible migration and listed here 
 | 1    | Server no longer crashes when the database connection drops; DB connections kept 10 min with keep-alive and 30 s query limits; login check cached 30 s                                                                                                                         | none (backend branch `fix/db-timeouts-auth-cache`)                                                                    |
 | 2    | Sign-up errors keep their real Supabase reason (`EMAIL_RATE_LIMITED`, `EMAIL_INVALID` …) on the right field; error envelope `field`; sign-up stores city, state, mobile, heard-from, terms; organizations wait for platform approval; `/platform/organizations` list + approve | `043_organization_approval.sql` (undo: `supabase/rollbacks/043_organization_approval.down.sql`) — **not applied yet** |
 | 3    | `GET /catalog/tree` (courses, subjects, topics, question counts in one request); `details` on courses, subjects, topics for the prototype form fields                                                                                                                          | `044_catalog_details.sql` (undo: `supabase/rollbacks/044_catalog_details.down.sql`) — **not applied yet**             |
-| 7    | `batches` table, `students.batch_id`, `/batches` API; students list and form show the batch | `045_batches.sql` (undo: `supabase/rollbacks/045_batches.down.sql`) — **not applied yet** |
+| 7    | `batches` table, `students.batch_id`, `/batches` API; students list and form show the batch                                                                                                                                                                                    | `045_batches.sql` (undo: `supabase/rollbacks/045_batches.down.sql`) — **not applied yet**                             |
+| 8    | live classes, recordings, materials tables; learning.read / learning.manage permissions; `/live-classes`, `/recordings`, `/materials` API                                                                                                                                      | `046_learning.sql` (undo: `supabase/rollbacks/046_learning.down.sql`) — **not applied yet**                           |
+| 10   | organization settings branding gains theme, dateFormat, timeFormat, weekStart (no migration: existing jsonb); `GET /me` returns them as `preferences`                                                                                                                          | none                                                                                                                  |
+
+QA handoff: `docs/QA_HANDOFF.md` (setup, screen checklist, known gaps).

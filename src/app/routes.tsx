@@ -226,10 +226,16 @@ export const routes: RouteObject[] = [
                   { path: 'users', ...page(() => import('@/pages/organization/UsersPage')) },
                   { path: 'admins', ...page(() => import('@/pages/organization/AdminsPage')) },
                   {
-                    path: 'admins/new',
-                    lazy: async () => ({
-                      Component: (await import('@/pages/forms/AddPages')).AdminNewPage,
-                    }),
+                    // Adding needs user.create, not only the read permission of the list.
+                    element: <RequirePermission permission="user.create" />,
+                    children: [
+                      {
+                        path: 'admins/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/forms/AddPages')).AdminNewPage,
+                        }),
+                      },
+                    ],
                   },
                 ],
               },
@@ -264,10 +270,16 @@ export const routes: RouteObject[] = [
                   { path: 'students', ...page(() => import('@/pages/students/StudentsPage')) },
                   { path: 'batches', ...page(() => import('@/pages/students/BatchesPage')) },
                   {
-                    path: 'students/new',
-                    lazy: async () => ({
-                      Component: (await import('@/pages/forms/AddPages')).StudentNewPage,
-                    }),
+                    // Adding needs student.create, not only the read permission of the list.
+                    element: <RequirePermission permission="student.create" />,
+                    children: [
+                      {
+                        path: 'students/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/forms/AddPages')).StudentNewPage,
+                        }),
+                      },
+                    ],
                   },
                 ],
               },
@@ -291,10 +303,16 @@ export const routes: RouteObject[] = [
                 children: [
                   { path: 'teachers', ...page(() => import('@/pages/teachers/TeachersPage')) },
                   {
-                    path: 'teachers/new',
-                    lazy: async () => ({
-                      Component: (await import('@/pages/forms/AddPages')).TeacherNewPage,
-                    }),
+                    // Adding needs teacher.create, not only the read permission of the list.
+                    element: <RequirePermission permission="teacher.create" />,
+                    children: [
+                      {
+                        path: 'teachers/new',
+                        lazy: async () => ({
+                          Component: (await import('@/pages/forms/AddPages')).TeacherNewPage,
+                        }),
+                      },
+                    ],
                   },
                 ],
               },

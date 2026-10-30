@@ -50,6 +50,7 @@ export interface Overview {
     passed: number;
     passRate: number | null;
     liveToday: number | null;
+    liveNow?: number;
   };
   flow: {
     courses: { courses: number; subjects: number; topics: number; subjectsWithoutTopics: number };

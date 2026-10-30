@@ -155,6 +155,8 @@ describe('unauthorized pages are refused, not just hidden', () => {
     ['teacher', 'TEACHER', '/org/settings'],
     ['student', 'STUDENT', '/org/profile'],
     ['student', 'STUDENT', '/org/users'],
+    ['teacher', 'TEACHER', '/org/students/new'],
+    ['teacher', 'TEACHER', '/org/batches/new'],
   ] as const)('%s opening %s is denied', async (_who, role, path) => {
     setup(role);
     renderRoute(path);

@@ -677,7 +677,7 @@ export default function DashboardPage() {
               testId="live-today"
               label="Live classes today"
               value={h.liveToday ?? '—'}
-              chip={h.liveToday == null ? 'Live classes not set up yet' : undefined}
+              chip={h.liveToday == null ? 'Live classes not set up yet' : `${h.liveNow ?? 0} live now`}
             />
           </section>
 
